@@ -18,6 +18,10 @@ Route::get('/payloads', [PayloadController::class, 'index']);
 Route::get('/payloads/{deviceId}', [PayloadController::class, 'show'])->where('deviceId', '[A-Za-z0-9\-]+');
 Route::put('/payloads/{deviceId}', [PayloadController::class, 'update']);
 Route::post('/payloads/{deviceId}', [PayloadController::class, 'store'])->where('deviceId', '[A-Za-z0-9\-]+');
+// Payload history route - get last entries (default 60)
+Route::get('/payloads/{deviceId}/history/{limit?}', [PayloadController::class, 'history'])
+    ->where('deviceId', '[A-Za-z0-9\-]+')
+    ->where('limit', '[0-9]+');
 
 
 // Actuator routes

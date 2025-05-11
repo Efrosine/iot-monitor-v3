@@ -6,6 +6,8 @@ use App\Models\Payload;
 use App\Models\Device;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class PayloadController extends Controller
 {
@@ -78,6 +80,50 @@ class PayloadController extends Controller
             });
 
         return response()->json($payloads);
+    }
+
+    /**
+     * Get recent history for a specific device.
+     * 
+     * @param string $deviceId The ID of the device
+     * @param int $limit The maximum number of records to return (default: 60)
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function history($deviceId, $limit = 60)
+    {
+        // Check if the device exists
+        $device = Device::where('deviceId', $deviceId)->first();
+
+        if (!$device) {
+            return response()->json([
+                'error' => 'Device not found',
+                'message' => 'Cannot retrieve history for non-existent device'
+            ], 404);
+        }
+
+        // Format table name based on deviceId
+        $tableName = 'history_' . str_replace('-', '_', $deviceId);
+
+        // Check if history table exists
+        if (!Schema::hasTable($tableName)) {
+            return response()->json([
+                'error' => 'No history available',
+                'message' => 'No history data exists for this device'
+            ], 404);
+        }
+
+        // Get the recent history entries, limited to the specified number
+        $history = DB::table($tableName)->select('data', 'created_at')
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get()->map(function ($entry) {
+                return [
+                    'data' => json_decode($entry->data),
+                    'created_at' => $entry->created_at,
+                ];
+            });
+
+        return response()->json($history);
     }
 
     /**
