@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $device->name }} - IoT Monitor</title>
     @vite(['resources/js/app.js', 'resources/css/app.css'])
-    <!-- Include Chart.js and required adapters for time scales -->
+    <!-- Include Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -97,6 +97,20 @@
         let currentPage = 1;
         const pageSize = 10;
         let chart = null;
+
+        // Chart.js configuration
+        Chart.defaults.set('plugins.tooltip.callbacks.title', function (context) {
+            // Format the timestamp in the tooltip
+            const date = new Date(context[0].parsed.x);
+            return date.toLocaleString();
+        });
+
+        // Helper function to format dates for chart labels
+        function formatDate(date) {
+            const d = new Date(date);
+            return d.getHours().toString().padStart(2, '0') + ':' +
+                d.getMinutes().toString().padStart(2, '0');
+        }
 
         // Fetch device history when the page loads
         document.addEventListener('DOMContentLoaded', function () {
@@ -246,26 +260,19 @@
             // Reverse the data to show oldest first
             const chartData = [...data].reverse();
 
-            // Get all the keys from the first data point to create a dataset for each
-            const dataKeys = Object.keys(chartData[0].data || {});
+            // Only display the 'value' dataset with purple color
+            const datasets = [];
 
-            // Prepare datasets for each key
-            const datasets = dataKeys.map((key, index) => {
-                // Generate a color based on index
-                const hue = (index * 137) % 360; // Golden angle approximation for good distribution
-                const color = `hsl(${hue}, 70%, 60%)`;
-
-                return {
-                    label: key,
-                    data: chartData.map(item => ({
-                        x: new Date(item.created_at),
-                        y: parseFloat(item.data[key]) || 0
-                    })),
-                    borderColor: color,
-                    backgroundColor: color + '33', // Add alpha for transparency
+            // Check if 'value' exists in the data
+            if (chartData[0].data && 'value' in chartData[0].data) {
+                datasets.push({
+                    label: 'value',
+                    data: chartData.map(item => parseFloat(item.data.value) || 0),
+                    borderColor: 'hsl(270, 70%, 60%)', // Purple color
+                    backgroundColor: 'hsl(270, 70%, 60%)33', // Purple with transparency
                     tension: 0.3
-                };
-            });
+                });
+            }
 
             const ctx = document.getElementById('sensorChart').getContext('2d');
 
@@ -285,13 +292,8 @@
                     maintainAspectRatio: false,
                     scales: {
                         x: {
-                            type: 'time',
-                            time: {
-                                unit: 'minute',
-                                displayFormats: {
-                                    minute: 'HH:mm'
-                                }
-                            },
+                            type: 'category',
+                            labels: chartData.map(item => formatDate(item.created_at)),
                             title: {
                                 display: true,
                                 text: 'Time'
@@ -311,12 +313,7 @@
                     },
                     plugins: {
                         tooltip: {
-                            callbacks: {
-                                title: function (context) {
-                                    // Format the timestamp in the tooltip
-                                    return new Date(context[0].parsed.x).toLocaleString();
-                                }
-                            }
+                            // The title callback is now defined globally above
                         }
                     }
                 }
@@ -352,17 +349,20 @@
 
                     // Update chart if this is a sensor
                     if (deviceType === 'sensor' && chart) {
-                        // Add the new data point to each dataset
-                        for (const key in e.history[0].data) {
-                            const datasetIndex = chart.data.datasets.findIndex(ds => ds.label === key);
+                        // Add the formatted time to the x-axis labels
+                        chart.data.labels.push(formatDate(e.history[0].created_at));
+
+                        // Add only the 'value' data point if it exists
+                        if ('value' in e.history[0].data) {
+                            const datasetIndex = chart.data.datasets.findIndex(ds => ds.label === 'value');
                             if (datasetIndex !== -1) {
-                                chart.data.datasets[datasetIndex].data.push({
-                                    x: new Date(e.history[0].created_at),
-                                    y: parseFloat(e.history[0].data[key]) || 0
-                                });
+                                chart.data.datasets[datasetIndex].data.push(
+                                    parseFloat(e.history[0].data.value) || 0
+                                );
                             }
                         }
-                        chart.update();
+                        // Update the chart with the new data
+                        chart.update('quiet'); // Use 'quiet' mode for better performance
                     }
                 }
             });
