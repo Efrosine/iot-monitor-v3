@@ -60,8 +60,13 @@
     // Create a card element for a device
     function createDeviceCard(device) {
         const card = document.createElement('div');
-        card.className = 'card bg-base-100 shadow-xl';
+        card.className = 'card bg-base-100 shadow-xl hover:bg-base-200 cursor-pointer';
         card.id = `device-${device.deviceId}`;
+
+        // Add click event to navigate to device detail page
+        card.addEventListener('click', function () {
+            window.location.href = `/devices/${device.deviceId}`;
+        });
 
         // Create appropriate icon based on device type
         let icon = '';

@@ -16,19 +16,35 @@ class PayloadSeeder extends Seeder
         $payloads = [
             [
                 'deviceId' => 'DEV001',
-                'data' => json_encode(['temperature' => 25.5, 'unit' => 'celsius']),
+                'data' => json_encode([
+                    'type' => 'temperature',
+                    'value' => 25.5,
+                    'unit' => 'celsius'
+                ]),
             ],
             [
                 'deviceId' => 'DEV002',
-                'data' => json_encode(['humidity' => 65, 'unit' => 'percent']),
+                'data' => json_encode([
+                    'type' => 'humidity',
+                    'value' => 65,
+                    'unit' => 'percent'
+                ]),
             ],
             [
                 'deviceId' => 'DEV003',
-                'data' => json_encode(['soil_moisture' => 45, 'unit' => 'percent']),
+                'data' => json_encode([
+                    'type' => 'soil_moisture',
+                    'value' => 45,
+                    'unit' => 'percent'
+                ]),
             ],
             [
                 'deviceId' => 'DEV004',
-                'data' => json_encode(['light_level' => 800, 'unit' => 'lux']),
+                'data' => json_encode([
+                    'type' => 'light_level',
+                    'value' => 800,
+                    'unit' => 'lux'
+                ]),
             ],
             [
                 'deviceId' => 'DEV005',
