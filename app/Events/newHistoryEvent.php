@@ -17,11 +17,18 @@ class newHistoryEvent implements ShouldBroadcast
     /**
      * Create a new event instance.
      */
-    public function __construct()
+    public $history;
+    public function __construct($history)
     {
-        //
+        $this->history = $history;
     }
-
+    public function broadcastwith()
+    {
+        return [
+            'history' => $this->history,
+            'apa' => 'apa',
+        ];
+    }
     /**
      * Get the channels the event should broadcast on.
      *

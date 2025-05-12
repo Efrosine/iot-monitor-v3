@@ -24,35 +24,23 @@ class PayloadSeeder extends Seeder
             ],
             [
                 'deviceId' => 'DEV003',
-                'data' => json_encode(['light_level' => 800, 'unit' => 'lux']),
+                'data' => json_encode(['soil_moisture' => 45, 'unit' => 'percent']),
             ],
             [
                 'deviceId' => 'DEV004',
-                'data' => json_encode(['motion_detected' => true, 'sensitivity' => 'high']),
+                'data' => json_encode(['light_level' => 800, 'unit' => 'lux']),
             ],
             [
                 'deviceId' => 'DEV005',
-                'data' => json_encode(['status' => 'on', 'brightness' => 75]),
-            ],
-            [
-                'deviceId' => 'DEV006',
                 'data' => json_encode(['status' => 'off', 'speed' => 0]),
             ],
             [
+                'deviceId' => 'DEV006',
+                'data' => json_encode(['status' => 'off', 'intensity' => 0]),
+            ],
+            [
                 'deviceId' => 'DEV007',
-                'data' => json_encode(['co2' => 450, 'tvoc' => 250, 'quality' => 'good']),
-            ],
-            [
-                'deviceId' => 'DEV008',
-                'data' => json_encode(['status' => 'closed', 'pressure' => 3.5]),
-            ],
-            [
-                'deviceId' => 'DEV009',
-                'data' => json_encode(['pressure' => 1013, 'unit' => 'hPa']),
-            ],
-            [
-                'deviceId' => 'DEV010',
-                'data' => json_encode(['status' => 'locked', 'battery' => 85]),
+                'data' => json_encode(['status' => 'off', 'flow_rate' => 0]),
             ],
         ];
 

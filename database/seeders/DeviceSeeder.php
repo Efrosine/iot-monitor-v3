@@ -16,52 +16,37 @@ class DeviceSeeder extends Seeder
         $devices = [
             [
                 'deviceId' => 'DEV001',
-                'name' => 'Temperature Sensor 1',
+                'name' => 'Temperature Sensor',
                 'type' => 'sensor',
             ],
             [
                 'deviceId' => 'DEV002',
-                'name' => 'Humidity Sensor 1',
+                'name' => 'Air Humidity Sensor',
                 'type' => 'sensor',
             ],
             [
                 'deviceId' => 'DEV003',
-                'name' => 'Light Sensor 1',
+                'name' => 'Soil Moisture Sensor',
                 'type' => 'sensor',
             ],
             [
                 'deviceId' => 'DEV004',
-                'name' => 'Motion Sensor 1',
+                'name' => 'Light Intensity Sensor',
                 'type' => 'sensor',
             ],
             [
                 'deviceId' => 'DEV005',
-                'name' => 'Smart Light 1',
+                'name' => 'Fan Actuator',
                 'type' => 'actuator',
             ],
             [
                 'deviceId' => 'DEV006',
-                'name' => 'Smart Fan 1',
+                'name' => 'Mist Maker Actuator',
                 'type' => 'actuator',
             ],
             [
                 'deviceId' => 'DEV007',
-                'name' => 'Air Quality Sensor 1',
-                'type' => 'sensor',
-            ],
-            [
-                'deviceId' => 'DEV008',
-                'name' => 'Water Valve 1',
-                'type' => 'actuator',
-            ],
-            [
-                'deviceId' => 'DEV009',
-                'name' => 'Pressure Sensor 1',
-                'type' => 'sensor',
-            ],
-            [
-                'deviceId' => 'DEV010',
-                'name' => 'Smart Lock 1',
+                'name' => 'Water Pump Actuator',
                 'type' => 'actuator',
             ],
         ];

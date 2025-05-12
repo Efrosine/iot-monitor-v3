@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\newHistoryEvent;
 use App\Models\Payload;
 use App\Models\Device;
 use Illuminate\Http\Request;
@@ -122,7 +123,8 @@ class PayloadController extends Controller
                     'created_at' => $entry->created_at,
                 ];
             });
-
+        // Dispatch an event for the new history entry
+        event(new newHistoryEvent($history));
         return response()->json($history);
     }
 

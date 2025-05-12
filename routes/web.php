@@ -8,6 +8,6 @@ Route::get('/', function () {
 });
 
 Route::get('/history', function () {
-    event(new newHistoryEvent());
+    event(new newHistoryEvent("test"));
     return "done";
 });
