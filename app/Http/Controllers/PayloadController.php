@@ -123,8 +123,8 @@ class PayloadController extends Controller
                     'created_at' => $entry->created_at,
                 ];
             });
-        // Dispatch an event for the new history entry
-        event(new newHistoryEvent($history));
+        // Dispatch an event for the new history entry with device ID
+        event(new newHistoryEvent($history, $deviceId));
         return response()->json($history);
     }
 

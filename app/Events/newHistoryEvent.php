@@ -18,15 +18,29 @@ class newHistoryEvent implements ShouldBroadcast
      * Create a new event instance.
      */
     public $history;
-    public function __construct($history)
+    public $deviceId;
+
+    /**
+     * Create a new event instance.
+     * 
+     * @param mixed $history The history data
+     * @param string|null $deviceId The device ID for channel-specific broadcasting
+     */
+    public function __construct($history, $deviceId = null)
     {
         $this->history = $history;
+        $this->deviceId = $deviceId;
     }
-    public function broadcastwith()
+
+    /**
+     * Get the data to broadcast.
+     *
+     * @return array
+     */
+    public function broadcastWith()
     {
         return [
             'history' => $this->history,
-            'apa' => 'apa',
         ];
     }
     /**
@@ -36,8 +50,15 @@ class newHistoryEvent implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
-        return [
-            new Channel('history'),
+        $channels = [
+            new Channel('history'), // Main history channel for all devices
         ];
+
+        // Add a device-specific channel if a deviceId exists
+        if ($this->deviceId) {
+            $channels[] = new Channel('device.' . $this->deviceId);
+        }
+
+        return $channels;
     }
 }
