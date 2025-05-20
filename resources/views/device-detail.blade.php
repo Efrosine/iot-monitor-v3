@@ -8,6 +8,8 @@
     @vite(['resources/js/app.js', 'resources/css/app.css'])
     <!-- Include Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.3.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.2.0"></script>
 </head>
 
 <body class="min-h-screen bg-base-200">
@@ -100,17 +102,10 @@
 
         // Chart.js configuration
         Chart.defaults.set('plugins.tooltip.callbacks.title', function (context) {
-            // Format the timestamp in the tooltip
-            const date = new Date(context[0].parsed.x);
-            return date.toLocaleString();
+            return new Date(context[0].raw.x).toLocaleString();
         });
 
         // Helper function to format dates for chart labels
-        function formatDate(date) {
-            const d = new Date(date);
-            return d.getHours().toString().padStart(2, '0') + ':' +
-                d.getMinutes().toString().padStart(2, '0');
-        }
 
         // Fetch device history when the page loads
         document.addEventListener('DOMContentLoaded', function () {
@@ -257,43 +252,55 @@
         function createOrUpdateChart(data) {
             if (deviceType !== 'sensor' || !data || data.length === 0) return;
 
-            // Reverse the data to show oldest first
-            const chartData = [...data].reverse();
+            const ctx = document.getElementById('sensorChart');
 
-            // Only display the 'value' dataset with purple color
-            const datasets = [];
-
-            // Check if 'value' exists in the data
-            if (chartData[0].data && 'value' in chartData[0].data) {
-                datasets.push({
-                    label: 'value',
-                    data: chartData.map(item => parseFloat(item.data.value) || 0),
-                    borderColor: 'hsl(270, 70%, 60%)', // Purple color
-                    backgroundColor: 'hsl(270, 70%, 60%)33', // Purple with transparency
-                    tension: 0.3
-                });
-            }
-
-            const ctx = document.getElementById('sensorChart').getContext('2d');
-
-            // Destroy existing chart if it exists
+            // Hapus chart lama secara menyeluruh
             if (chart) {
                 chart.destroy();
+                chart = null;
             }
 
-            // Create new chart
+            // Filter data yang memiliki value
+            const validData = data.filter(item => item.data?.value !== undefined);
+            if (validData.length === 0) return;
+
+            // Format data
+            const chartData = validData.map(item => ({
+                x: new Date(item.created_at),
+                y: parseFloat(item.data.value)
+            }));
+
+            // Buat chart baru
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    datasets: datasets
+                    datasets: [{
+                        label: 'Value',
+                        data: chartData,
+                        borderColor: 'hsl(270, 70%, 60%)',
+                        backgroundColor: 'hsl(270, 70%, 60%)33',
+                        tension: 0.3,
+                        fill: false,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        spanGaps: false, // Don't connect points across data gaps
+                        showLine: true, // Ensure line is shown
+                        borderJoinStyle: 'round' // Smooth line joins
+                    }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
                         x: {
-                            type: 'category',
-                            labels: chartData.map(item => formatDate(item.created_at)),
+                            type: 'time', // <-- INI YANG PALING PENTING
+                            time: {
+                                unit: 'minute',
+                                tooltipFormat: 'DD MMM YYYY HH:mm',
+                                displayFormats: {
+                                    minute: 'HH:mm'
+                                }
+                            },
                             title: {
                                 display: true,
                                 text: 'Time'
@@ -307,19 +314,28 @@
                             }
                         }
                     },
-                    interaction: {
-                        mode: 'index',
-                        intersect: false
-                    },
                     plugins: {
                         tooltip: {
-                            // The title callback is now defined globally above
+                            callbacks: {
+                                title: (context) => {
+                                    return new Date(context[0].raw.x).toLocaleString();
+                                }
+                            }
+                        },
+                        filler: {
+                            propagate: false // Prevent fill propagation
+                        }
+                    },
+                    elements: {
+                        line: {
+                            tension: 0.3,
+                            fill: false, // Again, ensure no fill
+                            closed: false // Critical: prevent the line from closing
                         }
                     }
                 }
             });
         }
-
         // Listen for real-time updates
         setTimeout(() => {
             window.Echo.channel(`device.${deviceId}`).listen('newHistoryEvent', (e) => {
@@ -348,21 +364,29 @@
                     tableBody.insertBefore(tempElement.firstChild, tableBody.firstChild);
 
                     // Update chart if this is a sensor
+                    // Update bagian ini dalam event listener
                     if (deviceType === 'sensor' && chart) {
-                        // Add the formatted time to the x-axis labels
-                        chart.data.labels.push(formatDate(e.history[0].created_at));
+                        // Tambahkan data baru
+                        const newDataPoint = {
+                            x: new Date(e.history[0].created_at),
+                            y: e.history[0].data.value || 0
+                        };
 
-                        // Add only the 'value' data point if it exists
-                        if ('value' in e.history[0].data) {
-                            const datasetIndex = chart.data.datasets.findIndex(ds => ds.label === 'value');
-                            if (datasetIndex !== -1) {
-                                chart.data.datasets[datasetIndex].data.push(
-                                    parseFloat(e.history[0].data.value) || 0
-                                );
-                            }
+                        chart.data.datasets[0].data.push(newDataPoint);
+
+                        // Ensure these settings are maintained when updating
+                        chart.data.datasets[0].fill = false;
+                        chart.options.elements.line.closed = false;
+
+                        // Sort data chronologically to ensure correct line drawing
+                        chart.data.datasets[0].data.sort((a, b) => a.x - b.x);
+
+                        // Hapus data terlama jika melebihi 100 data point
+                        if (chart.data.datasets[0].data.length > 100) {
+                            chart.data.datasets[0].data.shift();
                         }
-                        // Update the chart with the new data
-                        chart.update('quiet'); // Use 'quiet' mode for better performance
+
+                        chart.update();
                     }
                 }
             });
