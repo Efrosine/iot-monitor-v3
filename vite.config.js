@@ -8,4 +8,9 @@ export default defineConfig({
             refresh: true,
         }),
     ],
+     server: {
+    host: '172.28.41.90',  // Listen on all network interfaces
+    cors: true,        // Enable CORS for all origins
+    port: 5173,
+  },
 });
