@@ -300,6 +300,10 @@
                                 displayFormats: {
                                     minute: 'HH:mm'
                                 }
+                            }, ticks: {
+                                autoSkip: true,
+                                maxTicksLimit: 10,  // Control maximum number of ticks displayed
+                                source: 'auto'      // Use 'data' to base ticks on your data points
                             },
                             title: {
                                 display: true,

@@ -99,12 +99,41 @@
                 </div>
                 <div class="mt-2" id="device-data-${device.deviceId}">
                     ${statusBadge}
-                    <p class="mt-2 text-sm">No data received yet</p>
+                    <p class="mt-2 text-sm">Loading data...</p>
                 </div>
             </div>
         `;
 
+        // Fetch initial history data for this device
+        fetchDeviceHistory(device.deviceId);
+
         return card;
+    }
+
+    // Function to fetch initial history data
+    function fetchDeviceHistory(deviceId, limit = 1) {
+        fetch(`/api/payloads/${deviceId}/history/${limit}`)
+            .then(response => response.json())
+            .then(data => {
+                // Create an event-like object to reuse our existing update logic
+                const event = {
+                    deviceId: deviceId,
+                    history: data
+                };
+
+                // Update the device card with the fetched history data
+                updateDeviceCard(deviceId, event);
+            })
+            .catch(error => {
+                console.error(`Error fetching history for device ${deviceId}:`, error);
+                const dataContainer = document.getElementById(`device-data-${deviceId}`);
+                if (dataContainer) {
+                    dataContainer.innerHTML = `
+                        <div class="badge badge-error">Error</div>
+                        <p class="mt-2 text-sm">Could not load device data</p>
+                    `;
+                }
+            });
     }
 
     // Setup Echo listener for a specific device
