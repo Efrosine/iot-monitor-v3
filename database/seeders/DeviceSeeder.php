@@ -51,11 +51,16 @@ class DeviceSeeder extends Seeder
             ],
             [
                 'deviceId' => 'DEV008',
+                'name' => 'Growlight Actuator',
+                'type' => 'actuator',
+            ],
+            [
+                'deviceId' => 'DEV009',
                 'name' => 'Front Area Camera',
                 'type' => 'camera',
             ],
             [
-                'deviceId' => 'DEV009',
+                'deviceId' => 'DEV010',
                 'name' => 'Back Area Camera',
                 'type' => 'camera',
             ],

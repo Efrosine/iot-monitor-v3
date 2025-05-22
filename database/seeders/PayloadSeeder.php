@@ -60,10 +60,14 @@ class PayloadSeeder extends Seeder
             ],
             [
                 'deviceId' => 'DEV008',
-                'data' => json_encode(['url' => 'https://example.com/camera1-feed']),
+                'data' => json_encode(['status' => 'off']),
             ],
             [
                 'deviceId' => 'DEV009',
+                'data' => json_encode(['url' => 'https://example.com/camera1-feed']),
+            ],
+            [
+                'deviceId' => 'DEV010',
                 'data' => json_encode(['url' => 'https://example.com/camera2-feed']),
             ],
         ];
