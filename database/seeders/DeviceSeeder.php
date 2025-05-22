@@ -49,6 +49,16 @@ class DeviceSeeder extends Seeder
                 'name' => 'Water Pump Actuator',
                 'type' => 'actuator',
             ],
+            [
+                'deviceId' => 'DEV008',
+                'name' => 'Front Area Camera',
+                'type' => 'camera',
+            ],
+            [
+                'deviceId' => 'DEV009',
+                'name' => 'Back Area Camera',
+                'type' => 'camera',
+            ],
         ];
 
         foreach ($devices as $device) {

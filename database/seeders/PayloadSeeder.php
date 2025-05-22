@@ -58,6 +58,14 @@ class PayloadSeeder extends Seeder
                 'deviceId' => 'DEV007',
                 'data' => json_encode(['status' => 'off']),
             ],
+            [
+                'deviceId' => 'DEV008',
+                'data' => json_encode(['url' => 'https://example.com/camera1-feed']),
+            ],
+            [
+                'deviceId' => 'DEV009',
+                'data' => json_encode(['url' => 'https://example.com/camera2-feed']),
+            ],
         ];
 
         foreach ($payloads as $payload) {
