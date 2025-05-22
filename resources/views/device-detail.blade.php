@@ -97,30 +97,48 @@
             </div>
         @endif
 
-        <div class="card bg-base-100 shadow-xl">
-            <div class="card-body">
-                <h2 class="card-title">History Data</h2>
-                <div class="divider my-0"></div>
-                <div class="overflow-x-auto">
-                    <table class="table table-zebra">
-                        <thead>
-                            <tr>
-                                <th>Time</th>
-                                <th>Data</th>
-                            </tr>
-                        </thead>
-                        <tbody id="history-table-body">
-                            <tr>
-                                <td colspan="2" class="text-center">Loading history data...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="card-actions justify-end mt-4">
-                    <button class="btn btn-primary" id="load-more-btn">Load More</button>
+        @if($device->type == 'camera')
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">Camera Feed</h2>
+                    <div class="divider my-0"></div>
+                    <div class="flex justify-center items-center my-4">
+                        <div class="relative w-full max-w-3xl">
+                            <div id="camera-feed-placeholder" class="bg-base-200 h-64 flex items-center justify-center">
+                                <span class="loading loading-spinner loading-lg text-primary"></span>
+                                <span class="ml-2">Loading camera feed...</span>
+                            </div>
+                            <img id="camera-feed" class="w-full rounded-lg shadow-lg hidden" alt="Camera Feed" />
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
+        @else
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">History Data</h2>
+                    <div class="divider my-0"></div>
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Data</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table-body">
+                                <tr>
+                                    <td colspan="2" class="text-center">Loading history data...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-actions justify-end mt-4">
+                        <button class="btn btn-primary" id="load-more-btn">Load More</button>
+                    </div>
+                </div>
+            </div>
+        @endif
     </div>
 
     <script>
@@ -147,13 +165,22 @@
         // Fetch device history when the page loads
         document.addEventListener('DOMContentLoaded', function () {
             fetchDeviceStatus();
-            fetchDeviceHistory();
 
-            // Add event listener to load more button
-            document.getElementById('load-more-btn').addEventListener('click', function () {
-                currentPage++;
-                fetchDeviceHistory(true);
-            });
+            // For camera type, we only need to update the feed
+            if (deviceType === 'camera') {
+                fetchCameraFeed();
+            } else {
+                fetchDeviceHistory();
+
+                // Add event listener to load more button
+                const loadMoreBtn = document.getElementById('load-more-btn');
+                if (loadMoreBtn) {
+                    loadMoreBtn.addEventListener('click', function () {
+                        currentPage++;
+                        fetchDeviceHistory(true);
+                    });
+                }
+            }
 
             // Setup actuator toggle if it exists
             const actuatorToggle = document.getElementById('actuator-toggle');
@@ -206,6 +233,11 @@
                             // Update button styles
                             updateToggleStyles(actuatorState);
                         }
+
+                        // Update camera feed if this is the url field for a camera
+                        if (deviceType === 'camera' && key === 'url') {
+                            updateCameraFeed(value);
+                        }
                     }
                 }
             }
@@ -217,6 +249,55 @@
 
             statusHtml += '</div>';
             statusContainer.innerHTML = statusHtml;
+        }
+
+        // Fetch camera feed data
+        function fetchCameraFeed() {
+            fetch(`/api/payloads/${deviceId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data[0].data && data[0].data.url) {
+                        updateCameraFeed(data[0].data.url);
+                    } else {
+                        const feedPlaceholder = document.getElementById('camera-feed-placeholder');
+                        if (feedPlaceholder) {
+                            feedPlaceholder.innerHTML = '<div class="text-error">No camera feed URL available</div>';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching camera feed:', error);
+                    const feedPlaceholder = document.getElementById('camera-feed-placeholder');
+                    if (feedPlaceholder) {
+                        feedPlaceholder.innerHTML = '<div class="text-error">Error loading camera feed</div>';
+                    }
+                });
+        }
+
+        // Update camera feed with the given URL
+        function updateCameraFeed(url) {
+            if (!url) return;
+
+            const cameraFeed = document.getElementById('camera-feed');
+            const placeholder = document.getElementById('camera-feed-placeholder');
+
+            if (cameraFeed && placeholder) {
+                // Set the image source
+                cameraFeed.src = url;
+
+                // When image loads successfully, show it and hide placeholder
+                cameraFeed.onload = function () {
+                    cameraFeed.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                };
+
+                // If there's an error loading the image
+                cameraFeed.onerror = function () {
+                    cameraFeed.classList.add('hidden');
+                    placeholder.classList.remove('hidden');
+                    placeholder.innerHTML = '<div class="text-error">Failed to load camera feed</div>';
+                };
+            }
         }
 
         // Fetch device history data
@@ -489,44 +570,53 @@
                     };
                     updateDeviceStatus(latestData);
 
-                    // Add new entry to top of history table
-                    const tableBody = document.getElementById('history-table-body');
-                    const noDataRow = tableBody.querySelector('tr td[colspan="2"]');
+                    // Handle based on device type
+                    if (deviceType === 'camera') {
+                        // For camera, we only need to update the feed URL if it exists
+                        if (e.history[0].data && e.history[0].data.url) {
+                            updateCameraFeed(e.history[0].data.url);
+                        }
+                    } else if (deviceType !== 'camera') {
+                        // For non-camera devices, update history table
+                        const tableBody = document.getElementById('history-table-body');
+                        if (tableBody) {
+                            const noDataRow = tableBody.querySelector('tr td[colspan="2"]');
 
-                    if (noDataRow) {
-                        // Remove "no data" message if present
-                        tableBody.innerHTML = '';
-                    }
+                            if (noDataRow) {
+                                // Remove "no data" message if present
+                                tableBody.innerHTML = '';
+                            }
 
-                    // Prepend the new data to the table
-                    const tempElement = document.createElement('tbody');
-                    appendHistoryRow(tempElement, e.history[0]);
-                    tableBody.insertBefore(tempElement.firstChild, tableBody.firstChild);
-
-                    // Update chart if this is a sensor
-                    // Update bagian ini dalam event listener
-                    if (deviceType === 'sensor' && chart) {
-                        // Tambahkan data baru
-                        const newDataPoint = {
-                            x: new Date(e.history[0].created_at),
-                            y: e.history[0].data.value || 0
-                        };
-
-                        chart.data.datasets[0].data.push(newDataPoint);
-
-                        // Ensure these settings are maintained when updating
-                        chart.data.datasets[0].fill = false;
-                        chart.options.elements.line.closed = false;
-
-                        // Sort data chronologically to ensure correct line drawing
-                        chart.data.datasets[0].data.sort((a, b) => a.x - b.x);
-
-                        // Hapus data terlama jika melebihi 100 data point
-                        if (chart.data.datasets[0].data.length > 100) {
-                            chart.data.datasets[0].data.shift();
+                            // Prepend the new data to the table
+                            const tempElement = document.createElement('tbody');
+                            appendHistoryRow(tempElement, e.history[0]);
+                            tableBody.insertBefore(tempElement.firstChild, tableBody.firstChild);
                         }
 
-                        chart.update();
+                        // Update chart if this is a sensor
+                        if (deviceType === 'sensor' && chart) {
+                            // Tambahkan data baru
+                            const newDataPoint = {
+                                x: new Date(e.history[0].created_at),
+                                y: e.history[0].data.value || 0
+                            };
+
+                            chart.data.datasets[0].data.push(newDataPoint);
+
+                            // Ensure these settings are maintained when updating
+                            chart.data.datasets[0].fill = false;
+                            chart.options.elements.line.closed = false;
+
+                            // Sort data chronologically to ensure correct line drawing
+                            chart.data.datasets[0].data.sort((a, b) => a.x - b.x);
+
+                            // Hapus data terlama jika melebihi 100 data point
+                            if (chart.data.datasets[0].data.length > 100) {
+                                chart.data.datasets[0].data.shift();
+                            }
+
+                            chart.update();
+                        }
                     }
                 }
             });

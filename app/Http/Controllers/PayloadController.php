@@ -42,10 +42,17 @@ class PayloadController extends Controller
             ], 404);
         }
 
-        // Validate the incoming request data
-        $validated = $request->validate([
-            'data' => 'required|array',
-        ]);
+        // Validate the incoming request data based on device type
+        if ($device->type === 'camera') {
+            $validated = $request->validate([
+                'data' => 'required|array',
+                'data.url' => 'required|string',
+            ]);
+        } else {
+            $validated = $request->validate([
+                'data' => 'required|array',
+            ]);
+        }
 
         // Create a new payload
         $payload = Payload::create([
@@ -143,10 +150,17 @@ class PayloadController extends Controller
             ], 404);
         }
 
-        // Validate the incoming request data
-        $validated = $request->validate([
-            'data' => 'required|array',
-        ]);
+        // Validate the incoming request data based on device type
+        if ($device->type === 'camera') {
+            $validated = $request->validate([
+                'data' => 'required|array',
+                'data.url' => 'required|string',
+            ]);
+        } else {
+            $validated = $request->validate([
+                'data' => 'required|array',
+            ]);
+        }
 
         // This will update an existing payload or create a new one if it doesn't exist
         $payload = Payload::updateOrCreate(
