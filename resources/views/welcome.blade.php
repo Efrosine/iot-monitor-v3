@@ -62,6 +62,7 @@
         const card = document.createElement('div');
         card.className = 'card bg-base-100 shadow-xl hover:bg-base-200 cursor-pointer';
         card.id = `device-${device.deviceId}`;
+        card.dataset.deviceType = device.type;
 
         // Add click event to navigate to device detail page
         card.addEventListener('click', function () {
@@ -76,6 +77,8 @@
             icon = '<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" /></svg>';
         } else if (device.type === 'actuator') {
             icon = '<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>';
+        } else if (device.type === 'camera') {
+            icon = '<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>';
         } else {
             icon = '<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>';
         }
@@ -152,6 +155,10 @@
         const dataContainer = document.getElementById(`device-data-${deviceId}`);
         if (!dataContainer) return;
 
+        // Get the device type from the card's data attribute
+        const card = document.getElementById(`device-${deviceId}`);
+        const deviceType = card ? card.dataset.deviceType : null;
+
         if (event.history && event.history.length > 0) {
             const latestData = event.history[0].data;
             const timestamp = new Date(event.history[0].created_at).toLocaleString();
@@ -163,7 +170,16 @@
             for (const key in latestData) {
                 if (Object.hasOwnProperty.call(latestData, key)) {
                     const value = latestData[key];
-                    dataHtml += `<p class="text-sm"><span class="font-medium">${key}:</span> ${value}</p>`;
+
+                    // For camera devices, display image instead of URL text
+                    if (key === 'url' && deviceType === 'camera') {
+                        dataHtml += `<div class="mt-2">
+                            <div class="text-sm font-medium mb-1">Camera Feed:</div>
+                            <img src="${value}" alt="Camera Feed" class="w-full rounded-lg shadow-sm hover:shadow-md transition-shadow" loading="lazy" />
+                        </div>`;
+                    } else {
+                        dataHtml += `<p class="text-sm"><span class="font-medium">${key}:</span> ${value}</p>`;
+                    }
                 }
             }
 
