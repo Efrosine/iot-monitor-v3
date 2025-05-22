@@ -25,13 +25,29 @@ class PayloadSeeder extends Seeder
             [
                 'deviceId' => 'DEV002',
                 'data' => json_encode([
+                    'type' => 'temperature',
+                    'value' => 23.8,
+                    'unit' => 'celsius'
+                ]),
+            ],
+            [
+                'deviceId' => 'DEV003',
+                'data' => json_encode([
                     'type' => 'humidity',
                     'value' => 65,
                     'unit' => 'percent'
                 ]),
             ],
             [
-                'deviceId' => 'DEV003',
+                'deviceId' => 'DEV004',
+                'data' => json_encode([
+                    'type' => 'humidity',
+                    'value' => 68,
+                    'unit' => 'percent'
+                ]),
+            ],
+            [
+                'deviceId' => 'DEV005',
                 'data' => json_encode([
                     'type' => 'soil_moisture',
                     'value' => 45,
@@ -39,7 +55,31 @@ class PayloadSeeder extends Seeder
                 ]),
             ],
             [
-                'deviceId' => 'DEV004',
+                'deviceId' => 'DEV006',
+                'data' => json_encode([
+                    'type' => 'soil_moisture',
+                    'value' => 42,
+                    'unit' => 'percent'
+                ]),
+            ],
+            [
+                'deviceId' => 'DEV007',
+                'data' => json_encode([
+                    'type' => 'soil_moisture',
+                    'value' => 48,
+                    'unit' => 'percent'
+                ]),
+            ],
+            [
+                'deviceId' => 'DEV008',
+                'data' => json_encode([
+                    'type' => 'soil_moisture',
+                    'value' => 50,
+                    'unit' => 'percent'
+                ]),
+            ],
+            [
+                'deviceId' => 'DEV009',
                 'data' => json_encode([
                     'type' => 'light_level',
                     'value' => 800,
@@ -47,28 +87,48 @@ class PayloadSeeder extends Seeder
                 ]),
             ],
             [
-                'deviceId' => 'DEV005',
-                'data' => json_encode(['status' => 'off']),
-            ],
-            [
-                'deviceId' => 'DEV006',
-                'data' => json_encode(['status' => 'off']),
-            ],
-            [
-                'deviceId' => 'DEV007',
-                'data' => json_encode(['status' => 'off']),
-            ],
-            [
-                'deviceId' => 'DEV008',
-                'data' => json_encode(['status' => 'off']),
-            ],
-            [
-                'deviceId' => 'DEV009',
-                'data' => json_encode(['url' => 'https://example.com/camera1-feed']),
-            ],
-            [
                 'deviceId' => 'DEV010',
-                'data' => json_encode(['url' => 'https://example.com/camera2-feed']),
+                'data' => json_encode([
+                    'type' => 'light_level',
+                    'value' => 750,
+                    'unit' => 'lux'
+                ]),
+            ],
+            [
+                'deviceId' => 'DEV011',
+                'data' => json_encode([
+                    'status' => 'off'
+                ]),
+            ],
+            [
+                'deviceId' => 'DEV012',
+                'data' => json_encode([
+                    'status' => 'off'
+                ]),
+            ],
+            [
+                'deviceId' => 'DEV0013',
+                'data' => json_encode([
+                    'status' => 'off'
+                ]),
+            ],
+            [
+                'deviceId' => 'DEV014',
+                'data' => json_encode([
+                    'status' => 'off'
+                ]),
+            ],
+            [
+                'deviceId' => 'DEV015',
+                'data' => json_encode([
+                    'url' => 'https://example.com/front-area-feed'
+                ]),
+            ],
+            [
+                'deviceId' => 'DEV016',
+                'data' => json_encode([
+                    'url' => 'https://example.com/back-area-feed'
+                ]),
             ],
         ];
 
