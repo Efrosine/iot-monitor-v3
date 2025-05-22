@@ -48,15 +48,15 @@ class PayloadSeeder extends Seeder
             ],
             [
                 'deviceId' => 'DEV005',
-                'data' => json_encode(['status' => 'off', 'speed' => 0]),
+                'data' => json_encode(['status' => 'off']),
             ],
             [
                 'deviceId' => 'DEV006',
-                'data' => json_encode(['status' => 'off', 'intensity' => 0]),
+                'data' => json_encode(['status' => 'off']),
             ],
             [
                 'deviceId' => 'DEV007',
-                'data' => json_encode(['status' => 'off', 'flow_rate' => 0]),
+                'data' => json_encode(['status' => 'off']),
             ],
         ];
 
