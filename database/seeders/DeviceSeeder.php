@@ -75,7 +75,7 @@ class DeviceSeeder extends Seeder
                 'type' => 'actuator',
             ],
             [
-                'deviceId' => 'DEV0013',
+                'deviceId' => 'DEV013',
                 'name' => 'Water Pump Actuator',
                 'type' => 'actuator',
             ],

@@ -107,7 +107,7 @@ class PayloadSeeder extends Seeder
                 ]),
             ],
             [
-                'deviceId' => 'DEV0013',
+                'deviceId' => 'DEV013',
                 'data' => json_encode([
                     'status' => 'off'
                 ]),
