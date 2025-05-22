@@ -8,6 +8,10 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/coba', function () {
+    return view('coba');
+});
+
 Route::get('/devices/{deviceId}', function ($deviceId) {
     $device = Device::where('deviceId', $deviceId)->firstOrFail();
     return view('device-detail', ['device' => $device]);
