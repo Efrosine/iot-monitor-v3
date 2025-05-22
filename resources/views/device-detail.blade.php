@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $device->name }} - IoT Monitor</title>
     @vite(['resources/js/app.js', 'resources/css/app.css'])
     <!-- Include Chart.js -->
@@ -51,6 +52,38 @@
                 </div>
             </div>
         </div>
+
+        @if($device->type == 'actuator')
+            <div class="card bg-base-100 shadow-xl mb-6">
+                <div class="card-body">
+                    <h2 class="card-title">Actuator Control</h2>
+                    <div class="divider my-0"></div>
+
+                    <div class="flex flex-col gap-4 mt-4">
+                        <div class="form-control">
+                            <label class="label cursor-pointer">
+                                <span class="label-text text-lg font-medium">Power</span>
+                                <div class="join">
+                                    <span class="join-item btn btn-sm" id="status-off">OFF</span>
+                                    <input type="checkbox" class="toggle toggle-primary toggle-lg join-item"
+                                        id="actuator-toggle" />
+                                    <span class="join-item btn btn-sm" id="status-on">ON</span>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="alert alert-info" id="control-status">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Toggle the switch to control the actuator</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         @if($device->type == 'sensor')
             <div class="card bg-base-100 shadow-xl mb-6">
@@ -100,6 +133,10 @@
         const pageSize = 10;
         let chart = null;
 
+        // Variables for actuator control
+        let actuatorState = false;
+        let isControlUpdating = false;
+
         // Chart.js configuration
         Chart.defaults.set('plugins.tooltip.callbacks.title', function (context) {
             return new Date(context[0].raw.x).toLocaleString();
@@ -117,6 +154,14 @@
                 currentPage++;
                 fetchDeviceHistory(true);
             });
+
+            // Setup actuator toggle if it exists
+            const actuatorToggle = document.getElementById('actuator-toggle');
+            if (actuatorToggle) {
+                actuatorToggle.addEventListener('change', function () {
+                    toggleActuator(this.checked);
+                });
+            }
         });
 
         // Fetch current device status
@@ -151,6 +196,16 @@
                     if (Object.hasOwnProperty.call(data.data, key)) {
                         const value = data.data[key];
                         statusHtml += `<p><span class="font-medium">${key}:</span> ${value}</p>`;
+
+                        // Update actuator toggle if this is the status field and we're not currently updating
+                        if (deviceType === 'actuator' && key === 'status' && !isControlUpdating) {
+                            actuatorState = value === 'on';
+                            const toggle = document.getElementById('actuator-toggle');
+                            if (toggle) toggle.checked = actuatorState;
+
+                            // Update button styles
+                            updateToggleStyles(actuatorState);
+                        }
                     }
                 }
             }
@@ -246,6 +301,87 @@
                 <td>${dataContent}</td>
             `;
             tableBody.appendChild(row);
+        }
+
+        // Function to toggle actuator state
+        function toggleActuator(isOn) {
+            if (deviceType !== 'actuator') return;
+
+            isControlUpdating = true;
+
+            // Update UI to show that we're updating
+            updateToggleStyles(isOn);
+            const controlStatus = document.getElementById('control-status');
+            controlStatus.className = 'alert alert-warning';
+            controlStatus.innerHTML = `
+                <span class="loading loading-spinner loading-sm"></span>
+                <span>Updating actuator status...</span>
+            `;
+
+            // Send command to the server
+            fetch(`/api/payloads/${deviceId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    data: {
+                        status: isOn ? 'on' : 'off'
+                    }
+                })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to update actuator');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Show success message
+                    controlStatus.className = 'alert alert-success';
+                    controlStatus.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span>Actuator ${isOn ? 'turned ON' : 'turned OFF'} successfully!</span>
+                `;
+                })
+                .catch(error => {
+                    console.error('Error toggling actuator:', error);
+
+                    // Show error message and revert toggle
+                    controlStatus.className = 'alert alert-error';
+                    controlStatus.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span>Failed to update actuator. Please try again.</span>
+                `;
+
+                    // Revert the toggle to its previous state
+                    const toggle = document.getElementById('actuator-toggle');
+                    if (toggle) toggle.checked = actuatorState;
+                    updateToggleStyles(actuatorState);
+                })
+                .finally(() => {
+                    // Reset the updating flag after a short delay
+                    setTimeout(() => {
+                        isControlUpdating = false;
+                    }, 1000);
+                });
+        }
+
+        // Update the visual styles of the toggle buttons
+        function updateToggleStyles(isOn) {
+            const onButton = document.getElementById('status-on');
+            const offButton = document.getElementById('status-off');
+
+            if (onButton && offButton) {
+                if (isOn) {
+                    onButton.className = 'join-item btn btn-sm btn-success';
+                    offButton.className = 'join-item btn btn-sm';
+                } else {
+                    offButton.className = 'join-item btn btn-sm btn-error';
+                    onButton.className = 'join-item btn btn-sm';
+                }
+            }
         }
 
         // Create or update the chart with sensor data

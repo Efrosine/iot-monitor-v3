@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\Payload;
 use App\Models\Device;
+use App\Events\newHistoryEvent;
 use Carbon\Carbon;
 
 class StorePayloadHistory
@@ -101,6 +102,23 @@ class StorePayloadHistory
                     'created_at' => $currentTime,
                     'updated_at' => $currentTime,
                 ]);
+
+                // Get the recent history entries for this device
+                $historyLimit = 10; // Adjust this limit as needed
+                $history = DB::table($tableName)->select('data', 'created_at')
+                    ->orderBy('created_at', 'desc')
+                    ->limit($historyLimit)
+                    ->get()->map(function ($entry) {
+                        return [
+                            'data' => json_decode($entry->data),
+                            'created_at' => $entry->created_at,
+                        ];
+                    });
+
+                // Broadcast the history event
+                event(new newHistoryEvent($history, $deviceId));
+                Log::info("History event broadcasted for deviceId: {$deviceId}");
+
             } catch (\Exception $e) {
                 Log::error("Failed to insert record into history table: {$tableName}. Error: " . $e->getMessage());
             }
