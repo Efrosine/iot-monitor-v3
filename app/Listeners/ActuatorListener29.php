@@ -11,8 +11,9 @@ use App\Models\Device;
 use App\Models\Payload;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Artisan;
+use App\Jobs\TurnOffDevice;
 
-class ActuatorListener27 implements ShouldQueue, ShouldBeUnique
+class ActuatorListener29 implements ShouldQueue, ShouldBeUnique
 {
     use InteractsWithQueue;
     public $uniqueFor = 60;
@@ -146,13 +147,14 @@ class ActuatorListener27 implements ShouldQueue, ShouldBeUnique
         }elseif (Str::contains($currentDevice->name, 'Soil')){ 
             Log::info('is a soil sensor');
             $soilData = $this->calculateSensorMean('Soil', $devicesSensor);
-           if ($soilData && $soilData['mean'] < 50) {
+           if ($soilData && $soilData['mean'] < 70) {
             Log::info('Soil moisture is low, turning on the device.');
             Artisan::call('device:toggle', [
                 'deviceId' => 'DEV013',
                 '--on' => true,
             ]);
-           }elseif ($soilData && $soilData['mean'] > 60) {
+            TurnOffDevice::dispatch('DEV013')->delay(now()->addSeconds(5));
+           }elseif ($soilData && $soilData['mean'] > 80) {
             Log::info('Soil moisture is enough, turning off the device.');
              Artisan::call('device:toggle', [
                 'deviceId' => 'DEV013',

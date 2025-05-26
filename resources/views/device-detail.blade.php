@@ -148,7 +148,7 @@
 
         // Variables for pagination
         let currentPage = 1;
-        const pageSize = 10;
+        const pageSize = 30;
         let chart = null;
 
         // Variables for actuator control
