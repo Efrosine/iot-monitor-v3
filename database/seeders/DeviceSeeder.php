@@ -94,6 +94,11 @@ class DeviceSeeder extends Seeder
                 'name' => 'Back Area Camera',
                 'type' => 'camera',
             ],
+            [
+                'deviceId' => 'DEV017',
+                'name' => 'AC Unit',
+                'type' => 'ac',
+            ], 
         ];
 
         foreach ($devices as $device) {

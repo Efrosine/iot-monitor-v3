@@ -25,7 +25,7 @@ class DeviceController extends Controller
         $validated = $request->validate([
             'deviceId' => 'required|string|unique:devices,deviceId',
             'name' => 'required|string|max:255',
-            'type' => 'string|in:actuator,sensor,camera',
+            'type' => 'string|in:actuator,sensor,camera,ac',
         ]);
 
         $device = Device::create($validated);

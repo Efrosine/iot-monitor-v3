@@ -130,6 +130,14 @@ class PayloadSeeder extends Seeder
                     'url' => 'https://example.com/back-area-feed'
                 ]),
             ],
+            [
+                'deviceId' => 'DEV017',
+                'data' => json_encode([
+                    'status' => 'off',
+                    'value' => 0,
+                ]),
+            ],
+            
         ];
 
         foreach ($payloads as $payload) {

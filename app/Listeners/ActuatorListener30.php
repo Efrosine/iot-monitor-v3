@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Artisan;
 use App\Jobs\TurnOffDevice;
 
-class ActuatorListener29 implements ShouldQueue, ShouldBeUnique
+class ActuatorListener30 implements ShouldQueue, ShouldBeUnique
 {
     use InteractsWithQueue;
     public $uniqueFor = 60;
@@ -89,16 +89,12 @@ class ActuatorListener29 implements ShouldQueue, ShouldBeUnique
         $devicesSensor = Device::select('deviceId', 'name')->where('type', 'sensor')->get();
         $currentDevice = Device::where('deviceId', $deviceId)->first();
 
-        Log::info('sensors: ' . $devicesSensor);
-        Log::info('current: ' . $currentDevice);
-
         if($currentDevice->type != 'sensor'){
-            Log::info('not a sensor');
             return;
         }
 
         if(Str::contains($currentDevice->name, 'Temperature')){
-            Log::info('is a temperature sensor');
+            // Log::info('is a temperature sensor');
             $tempData = $this->calculateSensorMean('Temperature', $devicesSensor);
         //    if ($tempData && $tempData['mean'] > 30) {
         //     Log::info('Temperature is high, turning on the device.');
@@ -115,7 +111,7 @@ class ActuatorListener29 implements ShouldQueue, ShouldBeUnique
         //    }
             
         }elseif (Str::contains($currentDevice->name, 'Humidity')){ 
-            Log::info('is a humidity sensor');
+            // Log::info('is a humidity sensor');
             $humidityData = $this->calculateSensorMean('Humidity', $devicesSensor);
            if ($humidityData && $humidityData['mean'] < 40) {
             Log::info('Humidity is high, turning on the device.');
@@ -145,7 +141,7 @@ class ActuatorListener29 implements ShouldQueue, ShouldBeUnique
            }
             
         }elseif (Str::contains($currentDevice->name, 'Soil')){ 
-            Log::info('is a soil sensor');
+            // Log::info('is a soil sensor');
             $soilData = $this->calculateSensorMean('Soil', $devicesSensor);
            if ($soilData && $soilData['mean'] < 70) {
             Log::info('Soil moisture is low, turning on the device.');
@@ -165,7 +161,7 @@ class ActuatorListener29 implements ShouldQueue, ShouldBeUnique
            }
             
         }elseif (Str::contains($currentDevice->name, 'Light')){ 
-            Log::info('is a light sensor');
+            // Log::info('is a light sensor');
             $lightData = $this->calculateSensorMean('Light', $devicesSensor);
         //       if ($lightData && $lightData['mean'] < 50) {
         //     Log::info('Light is low, turning on the device.');
@@ -181,7 +177,7 @@ class ActuatorListener29 implements ShouldQueue, ShouldBeUnique
         //     ]);
         //    }
         }else{
-            Log::info('is not a sensor');
+            // Log::info('is not a sensor');
             return;
         }
     }
