@@ -35,9 +35,9 @@ class StorePayloadHistory
         $tableName = 'history_' . str_replace('-', '_', $deviceId);
         $currentTime = now();
 
-        // Fetch device information to check if it's an actuator
+        // Fetch device information to check if it's an actuator or AC
         $device = Device::where('deviceId', $deviceId)->first();
-        $isActuator = $device && $device->type === 'actuator';
+        $isActuator = $device && ($device->type === 'actuator' || $device->type === 'ac');
 
         // Check if history table exists
         if (!Schema::hasTable($tableName)) {
@@ -66,7 +66,7 @@ class StorePayloadHistory
                 $shouldInsert = true;
             } else {
                 if ($isActuator) {
-                    // For actuators, compare the data with the last record
+                    // For actuators and ACs, compare the data with the last record
                     $lastData = json_decode($lastRecord->data, true);
                     $currentData = json_decode($this->payload->data, true);
 
@@ -74,9 +74,9 @@ class StorePayloadHistory
                     $shouldInsert = $lastData != $currentData;
 
                     if ($shouldInsert) {
-                        Log::info("Actuator data changed, inserting new record for deviceId: {$deviceId}");
+                        Log::info("Actuator/AC data changed, inserting new record for deviceId: {$deviceId}");
                     } else {
-                        Log::info("Actuator data unchanged, skipping insertion for deviceId: {$deviceId}");
+                        Log::info("Actuator/AC data unchanged, skipping insertion for deviceId: {$deviceId}");
                     }
                 } else {
                     // For non-actuator devices, check when the last record was inserted (time-based)

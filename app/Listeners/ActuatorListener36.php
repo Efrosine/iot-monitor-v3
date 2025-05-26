@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Artisan;
 use App\Jobs\TurnOffDevice;
 
-class ActuatorListener30 implements ShouldQueue, ShouldBeUnique
+class ActuatorListener36 implements ShouldQueue, ShouldBeUnique
 {
     use InteractsWithQueue;
     public $uniqueFor = 60;
@@ -51,14 +51,21 @@ class ActuatorListener30 implements ShouldQueue, ShouldBeUnique
 
         $mean = 0;
         $sum = 0;
+        $min = PHP_FLOAT_MAX; // Initialize min to the maximum float value
         
-        $sensors->each(function($sensor) use (&$sum) {
+        $sensors->each(function($sensor) use (&$sum, &$mean, &$min) {
             $data = Payload::select('data')->where('deviceId', $sensor->deviceId)->latest()->first();
             if ($data) {
                 Log::info('data for ' . $sensor->deviceId . ': ' . $data->data);
                 $dataDecoded = json_decode($data->data);
                 if ($dataDecoded && isset($dataDecoded->value)) {
-                    $sum += $dataDecoded->value;
+                    $value = $dataDecoded->value;
+                    $sum += $value;
+                    
+                    // Track minimum value
+                    if ($value < $min) {
+                        $min = $value;
+                    }
                 }
             }
         });
@@ -67,15 +74,21 @@ class ActuatorListener30 implements ShouldQueue, ShouldBeUnique
         if ($sensors->count() > 0) {
             $mean = $sum / $sensors->count();
         }
+         // If no sensors had valid values, reset min
+        if ($min === PHP_FLOAT_MAX) {
+            $min = 29;
+        }
 
         Log::info($sensorType . ' sensors count: ' . $sensors->count());
         Log::info('sum ' . $sensorType . ': ' . $sum);
         Log::info('mean ' . $sensorType . ': ' . $mean);
+        Log::info('min ' . $sensorType . ': ' . $min);
 
         return [
             'mean' => $mean,
             'sum' => $sum,
             'count' => $sensors->count()
+            ,'min' => $min
         ];
     }
 
@@ -93,24 +106,58 @@ class ActuatorListener30 implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        if(Str::contains($currentDevice->name, 'Temperature')){
-            // Log::info('is a temperature sensor');
+        // Check temperature and time for AC control
+        if (Str::contains($currentDevice->name, 'Temperature')) {
             $tempData = $this->calculateSensorMean('Temperature', $devicesSensor);
-        //    if ($tempData && $tempData['mean'] > 30) {
-        //     Log::info('Temperature is high, turning on the device.');
-        //     Artisan::call('device:toggle', [
-        //         'deviceId' => 'DEV014',
-        //         '--on' => true,
-        //     ]);
-        //    }else{
-        //     Log::info('Temperature is normal, no action taken.');
-        //      Artisan::call('device:toggle', [
-        //         'deviceId' => 'DEV014',
-        //         '--off' => true,
-        //     ]);
-        //    }
             
-        }elseif (Str::contains($currentDevice->name, 'Humidity')){ 
+            // Get current hour (24-hour format)
+            $currentHour = (int)date('H');
+            
+            // Define night hours (10 PM - 6 AM: 22-23, 0-6)
+            $isNightTime = ($currentHour >= 22 || $currentHour < 6);
+            
+            Log::info('Current time: ' . date('H:i') . ' (' . ($isNightTime ? 'Night' : 'Day') . ')');
+            
+            if ($tempData) {
+                if ($isNightTime) {
+                    // Night time settings (on at 22°C, off at 17°C)
+                    if ($tempData['min'] > 22) {
+                        Log::info('Night time - Temperature is high, turning on AC.');
+                        Artisan::call('ac:toggle', [
+                            'deviceId' => 'DEV017
+                            ',
+                            'status' => 'on',
+                            'value' => 17
+                        ]);
+                    } else if ($tempData['min'] < 17) {
+                        Log::info('Night time - Temperature is low, turning off AC.');
+                        Artisan::call('ac:toggle', [
+                            'deviceId' => 'DEV017
+                            ',
+                            'status' => 'off'
+                        ]);
+                    }
+                } else {
+                    // Day time settings (on at 26°C, off at 20°C)
+                    if ($tempData['min'] > 26) {
+                        Log::info('Day time - Temperature is high, turning on AC.');
+                        Artisan::call('ac:toggle', [
+                            'deviceId' => 'DEV017
+                            ',
+                            'status' => 'on',
+                            'value' => 20
+                        ]);
+                    } else if ($tempData['min'] < 20) {
+                        Log::info('Day time - Temperature is low, turning off AC.');
+                        Artisan::call('ac:toggle', [
+                            'deviceId' => 'DEV017
+                            ',
+                            'status' => 'off'
+                        ]);
+                    }
+                }
+            }
+        } elseif (Str::contains($currentDevice->name, 'Humidity')){ 
             // Log::info('is a humidity sensor');
             $humidityData = $this->calculateSensorMean('Humidity', $devicesSensor);
            if ($humidityData && $humidityData['mean'] < 40) {

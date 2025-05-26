@@ -85,6 +85,48 @@
             </div>
         @endif
 
+         @if($device->type == 'ac')
+            <div class="card bg-base-100 shadow-xl mb-6">
+                <div class="card-body">
+                    <h2 class="card-title">AC Control</h2>
+                    <div class="divider my-0"></div>
+
+                    <div class="flex flex-col gap-4 mt-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text text-lg font-medium">Temperature</span>
+                            </label>
+                            <div class="join w-full flex flex-wrap">
+                                <input type="radio" name="ac-temperature" value="off" class="join-item btn" id="ac-temp-off" checked />
+                                <label for="ac-temp-off" class="join-item btn mr-4">OFF</label>
+                                
+                                <input type="radio" name="ac-temperature" value="17" class="join-item btn" id="ac-temp-17" />
+                                <label for="ac-temp-17" class="join-item btn mr-4">17°C</label>
+
+                                <input type="radio" name="ac-temperature" value="20" class="join-item btn" id="ac-temp-20" />
+                                <label for="ac-temp-20" class="join-item btn mr-4">20°C</label>
+
+                                <input type="radio" name="ac-temperature" value="22" class="join-item btn" id="ac-temp-22" />
+                                <label for="ac-temp-22" class="join-item btn mr-4">22°C</label>
+
+                                <input type="radio" name="ac-temperature" value="25" class="join-item btn" id="ac-temp-25" />
+                                <label for="ac-temp-25" class="join-item btn">25°C</label>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info" id="ac-control-status">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Select a temperature setting to control the AC</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif  
+
         @if($device->type == 'sensor')
             <div class="card bg-base-100 shadow-xl mb-6">
                 <div class="card-body">
@@ -154,6 +196,7 @@
         // Variables for actuator control
         let actuatorState = false;
         let isControlUpdating = false;
+        let acCurrentTemp = 'off'; // Variable to track AC temperature
 
         // Chart.js configuration
         Chart.defaults.set('plugins.tooltip.callbacks.title', function (context) {
@@ -189,6 +232,9 @@
                     toggleActuator(this.checked);
                 });
             }
+
+            // Setup AC temperature controls
+            setupACTemperatureControls();
         });
 
         // Fetch current device status
@@ -232,6 +278,26 @@
 
                             // Update button styles
                             updateToggleStyles(actuatorState);
+                        }
+                        
+                        // Update AC controls if this is temperature or status field and we're not currently updating
+                        if (deviceType === 'ac' && !isControlUpdating) {
+                            if (key === 'status') {
+                                if (value === 'off') {
+                                    acCurrentTemp = 'off';
+                                    const tempRadio = document.getElementById('ac-temp-off');
+                                    if (tempRadio) tempRadio.checked = true;
+                                    updateACControlStyles('off');
+                                }
+                            } else if (key === 'value' && data.data.status === 'on') {
+                                const tempValue = value.toString();
+                                if (['17', '20', '22', '25'].includes(tempValue)) {
+                                    acCurrentTemp = tempValue;
+                                    const tempRadio = document.getElementById(`ac-temp-${tempValue}`);
+                                    if (tempRadio) tempRadio.checked = true;
+                                    updateACControlStyles(tempValue);
+                                }
+                            }
                         }
 
                         // Update camera feed if this is the url field for a camera
@@ -621,6 +687,98 @@
                 }
             });
         }, 200);
+
+        // Setup AC temperature controls
+        function setupACTemperatureControls() {
+            const acTempRadios = document.querySelectorAll('input[name="ac-temperature"]');
+            const acControlStatus = document.getElementById('ac-control-status');
+
+            acTempRadios.forEach(radio => {
+                radio.addEventListener('change', function () {
+                    const tempValue = this.value;
+
+                    // Update UI to show that we're updating
+                    acControlStatus.className = 'alert alert-warning';
+                    acControlStatus.innerHTML = `
+                        <span class="loading loading-spinner loading-sm"></span>
+                        <span>Updating AC temperature...</span>
+                    `;
+
+                    // Determine payload based on temperature
+                    let status, value;
+                    if (tempValue === 'off') {
+                        status = 'off';
+                        value = 0;
+                    } else {
+                        status = 'on';
+                        value = parseInt(tempValue);
+                    }
+
+                    // Send command to the server
+                    fetch(`/api/payloads/${deviceId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        },
+                        body: JSON.stringify({
+                            data: {
+                                status: status,
+                                value: value
+                            }
+                        })
+                    })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Failed to update AC temperature');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            // Show success message
+                            acControlStatus.className = 'alert alert-success';
+                            acControlStatus.innerHTML = `
+                                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                <span>AC ${tempValue === 'off' ? 'turned OFF' : 'set to ' + tempValue + '°C'} successfully!</span>
+                            `;
+                            
+                            // Update current temperature
+                            acCurrentTemp = tempValue;
+                        })
+                        .catch(error => {
+                            console.error('Error updating AC temperature:', error);
+
+                            // Show error message
+                            acControlStatus.className = 'alert alert-error';
+                            acControlStatus.innerHTML = `
+                                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                <span>Failed to update AC temperature. Please try again.</span>
+                            `;
+                            
+                            // Revert the radio button to its previous state
+                            const prevRadio = document.getElementById(`ac-temp-${acCurrentTemp}`);
+                            if (prevRadio) prevRadio.checked = true;
+                        });
+                });
+            });
+        }
+        
+        // Update the visual styles of the AC temperature controls
+        function updateACControlStyles(selected) {
+            const tempRadios = document.querySelectorAll('input[name="ac-temperature"]');
+            tempRadios.forEach(radio => {
+                const label = document.querySelector(`label[for="${radio.id}"]`);
+                if (radio.value === selected) {
+                    if (selected === 'off') {
+                        label.className = 'join-item btn btn-error mr-4';
+                    } else {
+                        label.className = 'join-item btn btn-primary mr-4';
+                    }
+                } else {
+                    label.className = 'join-item btn mr-4';
+                }
+            });
+        }
     </script>
 </body>
 

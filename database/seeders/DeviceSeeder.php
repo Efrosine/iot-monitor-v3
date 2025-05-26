@@ -79,6 +79,7 @@ class DeviceSeeder extends Seeder
                 'name' => 'Water Pump Actuator',
                 'type' => 'actuator',
             ],
+           
             [
                 'deviceId' => 'DEV014',
                 'name' => 'Growlight Actuator',
@@ -99,6 +100,11 @@ class DeviceSeeder extends Seeder
                 'name' => 'AC Unit',
                 'type' => 'ac',
             ], 
+             [
+                'deviceId' => 'DEV018',
+                'name' => 'Nutrition Pump Actuator',
+                'type' => 'actuator',
+            ],
         ];
 
         foreach ($devices as $device) {

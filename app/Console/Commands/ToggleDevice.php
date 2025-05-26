@@ -58,7 +58,7 @@ class ToggleDevice extends Command
         }
 
         // Log the response
-        Log::info("API Response: " . json_encode($response));
+        // Log::info("API Response: " . json_encode($response));
         return 0;
     }
 }
