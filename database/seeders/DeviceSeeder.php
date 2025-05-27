@@ -16,24 +16,24 @@ class DeviceSeeder extends Seeder
         $devices = [
             [
                 'deviceId' => 'DEV001',
-                'name' => 'Temperature Sensor 1',
+                'name' => 'Temperature Sensor',
                 'type' => 'sensor',
             ],
-            [
-                'deviceId' => 'DEV002',
-                'name' => 'Temperature Sensor 2',
-                'type' => 'sensor',
-            ],
+            // [
+            //     'deviceId' => 'DEV002',
+            //     'name' => 'Temperature Sensor 2',
+            //     'type' => 'sensor',
+            // ],
             [
                 'deviceId' => 'DEV003',
-                'name' => 'Air Humidity Sensor 1',
+                'name' => 'Air Humidity Sensor',
                 'type' => 'sensor',
             ],
-            [
-                'deviceId' => 'DEV004',
-                'name' => 'Air Humidity Sensor 2',
-                'type' => 'sensor',
-            ],
+            // [
+            //     'deviceId' => 'DEV004',
+            //     'name' => 'Air Humidity Sensor 2',
+            //     'type' => 'sensor',
+            // ],
             [
                 'deviceId' => 'DEV005',
                 'name' => 'Soil Moisture Sensor 1',
@@ -85,14 +85,14 @@ class DeviceSeeder extends Seeder
                 'name' => 'Growlight Actuator',
                 'type' => 'actuator',
             ],
-            [
-                'deviceId' => 'DEV015',
-                'name' => 'Front Area Camera',
-                'type' => 'camera',
-            ],
+            // [
+            //     'deviceId' => 'DEV015',
+            //     'name' => 'Front Area Camera',
+            //     'type' => 'camera',
+            // ],
             [
                 'deviceId' => 'DEV016',
-                'name' => 'Back Area Camera',
+                'name' => 'Camera',
                 'type' => 'camera',
             ],
             [

@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Artisan;
 use App\Jobs\TurnOffDevice;
 
-class ActuatorListener36 implements ShouldQueue, ShouldBeUnique
+class ActuatorListener41 implements ShouldQueue, ShouldBeUnique
 {
     use InteractsWithQueue;
     public $uniqueFor = 60;
@@ -121,38 +121,36 @@ class ActuatorListener36 implements ShouldQueue, ShouldBeUnique
             if ($tempData) {
                 if ($isNightTime) {
                     // Night time settings (on at 22°C, off at 17°C)
-                    if ($tempData['min'] > 22) {
+                    if ($tempData['mean'] > 22) {
                         Log::info('Night time - Temperature is high, turning on AC.');
                         Artisan::call('ac:toggle', [
-                            'deviceId' => 'DEV017
-                            ',
+                            'deviceId' => 'DEV017',
                             'status' => 'on',
                             'value' => 17
                         ]);
-                    } else if ($tempData['min'] < 17) {
+                    } else if ($tempData['mean'] < 18) {
                         Log::info('Night time - Temperature is low, turning off AC.');
                         Artisan::call('ac:toggle', [
-                            'deviceId' => 'DEV017
-                            ',
-                            'status' => 'off'
+                            'deviceId' => 'DEV017',
+                            'status' => 'off',
+                            'value' => -1
                         ]);
                     }
                 } else {
                     // Day time settings (on at 26°C, off at 20°C)
-                    if ($tempData['min'] > 26) {
+                    if ($tempData['mean'] > 26) {
                         Log::info('Day time - Temperature is high, turning on AC.');
                         Artisan::call('ac:toggle', [
-                            'deviceId' => 'DEV017
-                            ',
+                            'deviceId' => 'DEV017',
                             'status' => 'on',
                             'value' => 20
                         ]);
-                    } else if ($tempData['min'] < 20) {
+                    } else if ($tempData['mean'] < 21) {
                         Log::info('Day time - Temperature is low, turning off AC.');
                         Artisan::call('ac:toggle', [
-                            'deviceId' => 'DEV017
-                            ',
-                            'status' => 'off'
+                            'deviceId' => 'DEV017',
+                            'status' => 'off',
+                            'value' => -1
                         ]);
                     }
                 }

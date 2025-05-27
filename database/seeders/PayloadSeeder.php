@@ -22,14 +22,14 @@ class PayloadSeeder extends Seeder
                     'unit' => 'celsius'
                 ]),
             ],
-            [
-                'deviceId' => 'DEV002',
-                'data' => json_encode([
-                    'type' => 'temperature',
-                    'value' => 23.8,
-                    'unit' => 'celsius'
-                ]),
-            ],
+            // [
+            //     'deviceId' => 'DEV002',
+            //     'data' => json_encode([
+            //         'type' => 'temperature',
+            //         'value' => 23.8,
+            //         'unit' => 'celsius'
+            //     ]),
+            // ],
             [
                 'deviceId' => 'DEV003',
                 'data' => json_encode([
@@ -38,14 +38,14 @@ class PayloadSeeder extends Seeder
                     'unit' => 'percent'
                 ]),
             ],
-            [
-                'deviceId' => 'DEV004',
-                'data' => json_encode([
-                    'type' => 'humidity',
-                    'value' => 68,
-                    'unit' => 'percent'
-                ]),
-            ],
+            // [
+            //     'deviceId' => 'DEV004',
+            //     'data' => json_encode([
+            //         'type' => 'humidity',
+            //         'value' => 68,
+            //         'unit' => 'percent'
+            //     ]),
+            // ],
             [
                 'deviceId' => 'DEV005',
                 'data' => json_encode([
@@ -118,12 +118,12 @@ class PayloadSeeder extends Seeder
                     'status' => 'off'
                 ]),
             ],
-            [
-                'deviceId' => 'DEV015',
-                'data' => json_encode([
-                    'url' => 'https://example.com/front-area-feed'
-                ]),
-            ],
+            // [
+            //     'deviceId' => 'DEV015',
+            //     'data' => json_encode([
+            //         'url' => 'https://example.com/front-area-feed'
+            //     ]),
+            // ],
             [
                 'deviceId' => 'DEV016',
                 'data' => json_encode([
