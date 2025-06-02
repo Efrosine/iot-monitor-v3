@@ -11,7 +11,7 @@ Artisan::command('inspire', function () {
 
 //growlight
 Schedule::command('device:toggle DEV014 --on')->dailyAt('7:00');
-Schedule::command('device:toggle DEV014 --off')->dailyAt('17:00');
+Schedule::command('device:toggle DEV014 --off')->dailyAt('19:00');
 
 //nutrition pump
 Schedule::command('device:toggle DEV018 --on')->days([1, 3, 5])->at('07:00');
