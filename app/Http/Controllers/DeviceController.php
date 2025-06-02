@@ -80,4 +80,25 @@ class DeviceController extends Controller
             'message' => 'Device deleted successfully'
         ]);
     }
+
+    /**
+     * Toggle automatic mode for a device.
+     */
+    public function toggleAutoMode(Request $request, $deviceId)
+    {
+        $device = Device::where('deviceId', $deviceId)->firstOrFail();
+
+        $request->validate([
+            'auto_mode' => 'required|boolean',
+        ]);
+
+        $device->auto_mode = $request->input('auto_mode');
+        $device->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Auto mode updated successfully',
+            'auto_mode' => $device->auto_mode
+        ]);
+    }
 }

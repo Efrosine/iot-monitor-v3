@@ -9,7 +9,8 @@ class Device extends Model
     protected $fillable = [
         'deviceId',
         'name',
-        'type'
+        'type',
+        'auto_mode'
     ];
 
     public function payloads()

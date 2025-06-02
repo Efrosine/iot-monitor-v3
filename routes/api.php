@@ -12,6 +12,8 @@ Route::get('/user', function (Request $request) {
 
 // Device routes - full CRUD
 Route::apiResource('devices', DeviceController::class);
+// Toggle auto mode for a device
+Route::put('/devices/{deviceId}/auto-mode', [DeviceController::class, 'toggleAutoMode'])->where('deviceId', '[A-Za-z0-9\-]+');
 
 // Payload routes - read and update
 Route::get('/payloads', [PayloadController::class, 'index']);

@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Artisan;
 use App\Jobs\TurnOffDevice;
 
-class ActuatorListener41 implements ShouldQueue, ShouldBeUnique
+class ActuatorListener42 implements ShouldQueue, ShouldBeUnique
 {
     use InteractsWithQueue;
     public $uniqueFor = 60;
@@ -45,15 +45,15 @@ class ActuatorListener41 implements ShouldQueue, ShouldBeUnique
      */
     private function calculateSensorMean(string $sensorType, $devicesSensor): array
     {
-        $sensors = $devicesSensor->filter(function($device) use ($sensorType) {
+        $sensors = $devicesSensor->filter(function ($device) use ($sensorType) {
             return Str::contains($device->name, $sensorType);
         });
 
         $mean = 0;
         $sum = 0;
         $min = PHP_FLOAT_MAX; // Initialize min to the maximum float value
-        
-        $sensors->each(function($sensor) use (&$sum, &$mean, &$min) {
+
+        $sensors->each(function ($sensor) use (&$sum, &$mean, &$min) {
             $data = Payload::select('data')->where('deviceId', $sensor->deviceId)->latest()->first();
             if ($data) {
                 Log::info('data for ' . $sensor->deviceId . ': ' . $data->data);
@@ -61,7 +61,7 @@ class ActuatorListener41 implements ShouldQueue, ShouldBeUnique
                 if ($dataDecoded && isset($dataDecoded->value)) {
                     $value = $dataDecoded->value;
                     $sum += $value;
-                    
+
                     // Track minimum value
                     if ($value < $min) {
                         $min = $value;
@@ -74,7 +74,7 @@ class ActuatorListener41 implements ShouldQueue, ShouldBeUnique
         if ($sensors->count() > 0) {
             $mean = $sum / $sensors->count();
         }
-         // If no sensors had valid values, reset min
+        // If no sensors had valid values, reset min
         if ($min === PHP_FLOAT_MAX) {
             $min = 29;
         }
@@ -88,7 +88,8 @@ class ActuatorListener41 implements ShouldQueue, ShouldBeUnique
             'mean' => $mean,
             'sum' => $sum,
             'count' => $sensors->count()
-            ,'min' => $min
+            ,
+            'min' => $min
         ];
     }
 
@@ -102,22 +103,29 @@ class ActuatorListener41 implements ShouldQueue, ShouldBeUnique
         $devicesSensor = Device::select('deviceId', 'name')->where('type', 'sensor')->get();
         $currentDevice = Device::where('deviceId', $deviceId)->first();
 
-        if($currentDevice->type != 'sensor'){
+        if ($currentDevice->type != 'sensor') {
             return;
         }
 
         // Check temperature and time for AC control
         if (Str::contains($currentDevice->name, 'Temperature')) {
+            // Check if AC device is in auto mode
+            $acDevice = Device::where('deviceId', 'DEV017')->first();
+            if (!$acDevice || !$acDevice->auto_mode) {
+                Log::info('AC is in manual mode, skipping auto control');
+                return;
+            }
+
             $tempData = $this->calculateSensorMean('Temperature', $devicesSensor);
-            
+
             // Get current hour (24-hour format)
-            $currentHour = (int)date('H');
-            
+            $currentHour = (int) date('H');
+
             // Define night hours (10 PM - 6 AM: 22-23, 0-6)
             $isNightTime = ($currentHour >= 22 || $currentHour < 6);
-            
+
             Log::info('Current time: ' . date('H:i') . ' (' . ($isNightTime ? 'Night' : 'Day') . ')');
-            
+
             if ($tempData) {
                 if ($isNightTime) {
                     // Night time settings (on at 22°C, off at 17°C)
@@ -155,73 +163,90 @@ class ActuatorListener41 implements ShouldQueue, ShouldBeUnique
                     }
                 }
             }
-        } elseif (Str::contains($currentDevice->name, 'Humidity')){ 
-            // Log::info('is a humidity sensor');
+        } elseif (Str::contains($currentDevice->name, 'Humidity')) {
+            // Check if controlled devices are in auto mode
+            $mistDevice = Device::where('deviceId', 'DEV012')->first();
+            $fanDevice = Device::where('deviceId', 'DEV011')->first();
+
             $humidityData = $this->calculateSensorMean('Humidity', $devicesSensor);
-           if ($humidityData && $humidityData['mean'] < 40) {
-            Log::info('Humidity is high, turning on the device.');
-            Artisan::call('device:toggle', [
-                'deviceId' => 'DEV012',
-                '--on' => true,
-            ]);
-           }else{
-            Log::info('Humidity is normal, no action taken.');
-             Artisan::call('device:toggle', [
-                'deviceId' => 'DEV012',
-                '--off' => true,
-            ]);
-           }
-           if ($humidityData && $humidityData['mean'] > 80) {
-            Log::info('Humidity is high, turning on the device.');
-            Artisan::call('device:toggle', [
-                'deviceId' => 'DEV011',
-                '--on' => true,
-            ]);
-           }else{
-            Log::info('Humidity is normal, no action taken.');
-             Artisan::call('device:toggle', [
-                'deviceId' => 'DEV011',
-                '--off' => true,
-            ]);
-           }
-            
-        }elseif (Str::contains($currentDevice->name, 'Soil')){ 
-            // Log::info('is a soil sensor');
+
+            if ($mistDevice && $mistDevice->auto_mode && $humidityData && $humidityData['mean'] < 40) {
+                Log::info('Humidity is low, turning on mist device.');
+                Artisan::call('device:toggle', [
+                    'deviceId' => 'DEV012',
+                    '--on' => true,
+                ]);
+            } elseif ($mistDevice && $mistDevice->auto_mode) {
+                Log::info('Humidity is normal, turning off mist device.');
+                Artisan::call('device:toggle', [
+                    'deviceId' => 'DEV012',
+                    '--off' => true,
+                ]);
+            }
+
+            if ($fanDevice && $fanDevice->auto_mode && $humidityData && $humidityData['mean'] > 80) {
+                Log::info('Humidity is high, turning on fan device.');
+                Artisan::call('device:toggle', [
+                    'deviceId' => 'DEV011',
+                    '--on' => true,
+                ]);
+            } elseif ($fanDevice && $fanDevice->auto_mode) {
+                Log::info('Humidity is normal, turning off fan device.');
+                Artisan::call('device:toggle', [
+                    'deviceId' => 'DEV011',
+                    '--off' => true,
+                ]);
+            }
+
+        } elseif (Str::contains($currentDevice->name, 'Soil')) {
+            // Check if water pump device is in auto mode
+            $pumpDevice = Device::where('deviceId', 'DEV013')->first();
+            if (!$pumpDevice || !$pumpDevice->auto_mode) {
+                Log::info('Soil pump is in manual mode, skipping auto control');
+                return;
+            }
+
             $soilData = $this->calculateSensorMean('Soil', $devicesSensor);
-           if ($soilData && $soilData['mean'] < 70) {
-            Log::info('Soil moisture is low, turning on the device.');
-            Artisan::call('device:toggle', [
-                'deviceId' => 'DEV013',
-                '--on' => true,
-            ]);
-            TurnOffDevice::dispatch('DEV013')->delay(now()->addSeconds(5));
-           }elseif ($soilData && $soilData['mean'] > 80) {
-            Log::info('Soil moisture is enough, turning off the device.');
-             Artisan::call('device:toggle', [
-                'deviceId' => 'DEV013',
-                '--off' => true,
-            ]);
-           }else {
-            Log::info('Soil moisture is normal, no action taken.');
-           }
-            
-        }elseif (Str::contains($currentDevice->name, 'Light')){ 
-            // Log::info('is a light sensor');
+            if ($soilData && $soilData['mean'] < 70) {
+                Log::info('Soil moisture is low, turning on the device.');
+                Artisan::call('device:toggle', [
+                    'deviceId' => 'DEV013',
+                    '--on' => true,
+                ]);
+                TurnOffDevice::dispatch('DEV013')->delay(now()->addSeconds(5));
+            } elseif ($soilData && $soilData['mean'] > 80) {
+                Log::info('Soil moisture is enough, turning off the device.');
+                Artisan::call('device:toggle', [
+                    'deviceId' => 'DEV013',
+                    '--off' => true,
+                ]);
+            } else {
+                Log::info('Soil moisture is normal, no action taken.');
+            }
+
+        } elseif (Str::contains($currentDevice->name, 'Light')) {
+            // Check if light device is in auto mode
+            $lightDevice = Device::where('deviceId', 'DEV014')->first();
+            if (!$lightDevice || !$lightDevice->auto_mode) {
+                Log::info('Light device is in manual mode, skipping auto control');
+                return;
+            }
+
             $lightData = $this->calculateSensorMean('Light', $devicesSensor);
-        //       if ($lightData && $lightData['mean'] < 50) {
-        //     Log::info('Light is low, turning on the device.');
-        //     Artisan::call('device:toggle', [
-        //         'deviceId' => 'DEV014',
-        //         '--on' => true,
-        //     ]);
-        //    }else{
-        //     Log::info('Light is normal, no action taken.');
-        //      Artisan::call('device:toggle', [
-        //         'deviceId' => 'DEV014',
-        //         '--off' => true,
-        //     ]);
-        //    }
-        }else{
+            //       if ($lightData && $lightData['mean'] < 50) {
+            //     Log::info('Light is low, turning on the device.');
+            //     Artisan::call('device:toggle', [
+            //         'deviceId' => 'DEV014',
+            //         '--on' => true,
+            //     ]);
+            //    }else{
+            //     Log::info('Light is normal, no action taken.');
+            //      Artisan::call('device:toggle', [
+            //         'deviceId' => 'DEV014',
+            //         '--off' => true,
+            //     ]);
+            //    }
+        } else {
             // Log::info('is not a sensor');
             return;
         }
@@ -230,4 +255,3 @@ class ActuatorListener41 implements ShouldQueue, ShouldBeUnique
 //temp uper 26 ac on under 18 off
 //hum under 40 mist(12) under 80 kipas(11)
 //soil under 50 pump upper 60 off(13)
-

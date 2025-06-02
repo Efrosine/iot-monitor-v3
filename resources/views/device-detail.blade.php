@@ -53,6 +53,43 @@
             </div>
         </div>
 
+        @if($device->type == 'actuator' || $device->type == 'ac')
+            <div class="card bg-base-100 shadow-xl mb-6">
+                <div class="card-body">
+                    <h2 class="card-title">Control Mode</h2>
+                    <div class="divider my-0"></div>
+
+                    <div class="flex flex-col gap-4 mt-4">
+                        <div class="form-control">
+                            <label class="label cursor-pointer">
+                                <span class="label-text text-lg font-medium">Automatic Control</span>
+                                <div class="join">
+                                    <span class="join-item btn btn-sm" id="mode-manual">MANUAL</span>
+                                    <input type="checkbox" class="toggle toggle-primary toggle-lg join-item"
+                                        id="auto-mode-toggle" />
+                                    <span class="join-item btn btn-sm" id="mode-auto">AUTO</span>
+                                </div>
+                            </label>
+                            <p class="text-sm mt-2 opacity-70">
+                                When in AUTO mode, this device will be controlled automatically by the system based on
+                                sensor readings.
+                                In MANUAL mode, you can control the device directly.
+                            </p>
+                        </div>
+
+                        <div class="alert alert-info" id="auto-mode-status">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Toggle the switch to change control mode</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         @if($device->type == 'actuator')
             <div class="card bg-base-100 shadow-xl mb-6">
                 <div class="card-body">
@@ -83,9 +120,25 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Confirmation Modal -->
+            <dialog id="actuator_confirm_modal" class="modal">
+                <div class="modal-box">
+                    <h3 class="font-bold text-lg">Confirm Action</h3>
+                    <p class="py-4">Are you sure you want to turn the actuator <span id="action-text"
+                            class="font-bold"></span>?</p>
+                    <div class="modal-action">
+                        <button id="confirm-actuator-action" class="btn btn-primary">Confirm</button>
+                        <button id="cancel-actuator-action" class="btn">Cancel</button>
+                    </div>
+                </div>
+                <form method="dialog" class="modal-backdrop">
+                    <button>close</button>
+                </form>
+            </dialog>
         @endif
 
-         @if($device->type == 'ac')
+        @if($device->type == 'ac')
             <div class="card bg-base-100 shadow-xl mb-6">
                 <div class="card-body">
                     <h2 class="card-title">AC Control</h2>
@@ -97,19 +150,24 @@
                                 <span class="label-text text-lg font-medium">Temperature</span>
                             </label>
                             <div class="join w-full flex flex-wrap">
-                                <input type="radio" name="ac-temperature" value="off" class="join-item btn" id="ac-temp-off" checked />
+                                <input type="radio" name="ac-temperature" value="off" class="join-item btn" id="ac-temp-off"
+                                    checked />
                                 <label for="ac-temp-off" class="join-item btn mr-4">OFF</label>
-                                
-                                <input type="radio" name="ac-temperature" value="17" class="join-item btn" id="ac-temp-17" />
+
+                                <input type="radio" name="ac-temperature" value="17" class="join-item btn"
+                                    id="ac-temp-17" />
                                 <label for="ac-temp-17" class="join-item btn mr-4">17°C</label>
 
-                                <input type="radio" name="ac-temperature" value="20" class="join-item btn" id="ac-temp-20" />
+                                <input type="radio" name="ac-temperature" value="20" class="join-item btn"
+                                    id="ac-temp-20" />
                                 <label for="ac-temp-20" class="join-item btn mr-4">20°C</label>
 
-                                <input type="radio" name="ac-temperature" value="22" class="join-item btn" id="ac-temp-22" />
+                                <input type="radio" name="ac-temperature" value="22" class="join-item btn"
+                                    id="ac-temp-22" />
                                 <label for="ac-temp-22" class="join-item btn mr-4">22°C</label>
 
-                                <input type="radio" name="ac-temperature" value="25" class="join-item btn" id="ac-temp-25" />
+                                <input type="radio" name="ac-temperature" value="25" class="join-item btn"
+                                    id="ac-temp-25" />
                                 <label for="ac-temp-25" class="join-item btn">25°C</label>
                             </div>
                         </div>
@@ -125,7 +183,7 @@
                     </div>
                 </div>
             </div>
-        @endif  
+        @endif
 
         @if($device->type == 'sensor')
             <div class="card bg-base-100 shadow-xl mb-6">
@@ -198,6 +256,10 @@
         let isControlUpdating = false;
         let acCurrentTemp = 'off'; // Variable to track AC temperature
 
+        // Variables for auto mode toggle
+        let autoModeState = {{ $device->auto_mode ? 'true' : 'false' }}; // Get from PHP
+        let isAutoModeUpdating = false;
+
         // Chart.js configuration
         Chart.defaults.set('plugins.tooltip.callbacks.title', function (context) {
             return new Date(context[0].raw.x).toLocaleString();
@@ -229,7 +291,54 @@
             const actuatorToggle = document.getElementById('actuator-toggle');
             if (actuatorToggle) {
                 actuatorToggle.addEventListener('change', function () {
-                    toggleActuator(this.checked);
+                    // Get the current state of the toggle
+                    const isOn = this.checked;
+
+                    // Set the action text in the modal
+                    document.getElementById('action-text').textContent = isOn ? 'ON' : 'OFF';
+
+                    // Show the confirmation modal
+                    const modal = document.getElementById('actuator_confirm_modal');
+                    modal.showModal();
+
+                    // Store the intended state for later use
+                    modal.dataset.intendedState = isOn ? 'true' : 'false';
+
+                    // Revert the checkbox to its previous state until the user confirms
+                    this.checked = !isOn;
+                });
+
+                // Setup confirmation modal buttons
+                document.getElementById('confirm-actuator-action').addEventListener('click', function () {
+                    const modal = document.getElementById('actuator_confirm_modal');
+                    const isOn = modal.dataset.intendedState === 'true';
+
+                    // Update the toggle state to match the intended state
+                    document.getElementById('actuator-toggle').checked = isOn;
+
+                    // Close the modal
+                    modal.close();
+
+                    // Execute the toggle action
+                    toggleActuator(isOn);
+                });
+
+                document.getElementById('cancel-actuator-action').addEventListener('click', function () {
+                    // Just close the modal without making changes
+                    document.getElementById('actuator_confirm_modal').close();
+                });
+            }
+
+            // Setup auto mode toggle if it exists
+            const autoModeToggle = document.getElementById('auto-mode-toggle');
+            if (autoModeToggle) {
+                // Set initial state
+                autoModeToggle.checked = autoModeState;
+                updateAutoModeStyles(autoModeState);
+
+                autoModeToggle.addEventListener('change', function () {
+                    const isAuto = this.checked;
+                    toggleAutoMode(isAuto);
                 });
             }
 
@@ -279,7 +388,7 @@
                             // Update button styles
                             updateToggleStyles(actuatorState);
                         }
-                        
+
                         // Update AC controls if this is temperature or status field and we're not currently updating
                         if (deviceType === 'ac' && !isControlUpdating) {
                             if (key === 'status') {
@@ -454,6 +563,7 @@
         function toggleActuator(isOn) {
             if (deviceType !== 'actuator') return;
 
+            // Execute the toggle action directly since confirmation was already handled
             isControlUpdating = true;
 
             // Update UI to show that we're updating
@@ -488,9 +598,9 @@
                     // Show success message
                     controlStatus.className = 'alert alert-success';
                     controlStatus.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    <span>Actuator ${isOn ? 'turned ON' : 'turned OFF'} successfully!</span>
-                `;
+                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <span>Actuator ${isOn ? 'turned ON' : 'turned OFF'} successfully!</span>
+                    `;
                 })
                 .catch(error => {
                     console.error('Error toggling actuator:', error);
@@ -498,9 +608,9 @@
                     // Show error message and revert toggle
                     controlStatus.className = 'alert alert-error';
                     controlStatus.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    <span>Failed to update actuator. Please try again.</span>
-                `;
+                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <span>Failed to update actuator. Please try again.</span>
+                    `;
 
                     // Revert the toggle to its previous state
                     const toggle = document.getElementById('actuator-toggle');
@@ -738,10 +848,10 @@
                             // Show success message
                             acControlStatus.className = 'alert alert-success';
                             acControlStatus.innerHTML = `
-                                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                <span>AC ${tempValue === 'off' ? 'turned OFF' : 'set to ' + tempValue + '°C'} successfully!</span>
-                            `;
-                            
+                            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span>AC ${tempValue === 'off' ? 'turned OFF' : 'set to ' + tempValue + '°C'} successfully!</span>
+                        `;
+
                             // Update current temperature
                             acCurrentTemp = tempValue;
                         })
@@ -751,10 +861,10 @@
                             // Show error message
                             acControlStatus.className = 'alert alert-error';
                             acControlStatus.innerHTML = `
-                                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                <span>Failed to update AC temperature. Please try again.</span>
-                            `;
-                            
+                            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span>Failed to update AC temperature. Please try again.</span>
+                        `;
+
                             // Revert the radio button to its previous state
                             const prevRadio = document.getElementById(`ac-temp-${acCurrentTemp}`);
                             if (prevRadio) prevRadio.checked = true;
@@ -762,7 +872,7 @@
                 });
             });
         }
-        
+
         // Update the visual styles of the AC temperature controls
         function updateACControlStyles(selected) {
             const tempRadios = document.querySelectorAll('input[name="ac-temperature"]');
@@ -778,6 +888,88 @@
                     label.className = 'join-item btn mr-4';
                 }
             });
+        }
+
+        // Function to toggle auto mode
+        function toggleAutoMode(isAuto) {
+            if (isAutoModeUpdating) return;
+
+            isAutoModeUpdating = true;
+
+            // Update UI to show that we're updating
+            updateAutoModeStyles(isAuto);
+            const autoModeStatus = document.getElementById('auto-mode-status');
+            autoModeStatus.className = 'alert alert-warning';
+            autoModeStatus.innerHTML = `
+                <span class="loading loading-spinner loading-sm"></span>
+                <span>Updating control mode...</span>
+            `;
+
+            // Send command to the server
+            fetch(`/api/devices/${deviceId}/auto-mode`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    auto_mode: isAuto
+                })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to update control mode');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Show success message
+                    autoModeStatus.className = 'alert alert-success';
+                    autoModeStatus.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span>Device set to ${isAuto ? 'AUTOMATIC' : 'MANUAL'} control mode successfully!</span>
+                `;
+
+                    // Update state
+                    autoModeState = isAuto;
+                })
+                .catch(error => {
+                    console.error('Error updating control mode:', error);
+
+                    // Show error message and revert toggle
+                    autoModeStatus.className = 'alert alert-error';
+                    autoModeStatus.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span>Failed to update control mode. Please try again.</span>
+                `;
+
+                    // Revert the toggle to its previous state
+                    const autoModeToggle = document.getElementById('auto-mode-toggle');
+                    if (autoModeToggle) autoModeToggle.checked = autoModeState;
+                    updateAutoModeStyles(autoModeState);
+                })
+                .finally(() => {
+                    // Reset the updating flag after a short delay
+                    setTimeout(() => {
+                        isAutoModeUpdating = false;
+                    }, 1000);
+                });
+        }
+
+        // Update the visual styles of the auto mode toggle buttons
+        function updateAutoModeStyles(isAuto) {
+            const autoButton = document.getElementById('mode-auto');
+            const manualButton = document.getElementById('mode-manual');
+
+            if (autoButton && manualButton) {
+                if (isAuto) {
+                    autoButton.className = 'join-item btn btn-sm btn-success';
+                    manualButton.className = 'join-item btn btn-sm';
+                } else {
+                    manualButton.className = 'join-item btn btn-sm btn-info';
+                    autoButton.className = 'join-item btn btn-sm';
+                }
+            }
         }
     </script>
 </body>

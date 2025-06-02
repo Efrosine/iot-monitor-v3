@@ -14,7 +14,8 @@ return new class extends Migration {
             $table->id();
             $table->string('deviceId')->unique();
             $table->string('name');
-            $table->enum('type', ['actuator', 'sensor', 'camera','ac'])->default('sensor');
+            $table->enum('type', ['actuator', 'sensor', 'camera', 'ac'])->default('sensor');
+            $table->boolean('auto_mode')->default(true);
             $table->timestamps();
         });
     }
