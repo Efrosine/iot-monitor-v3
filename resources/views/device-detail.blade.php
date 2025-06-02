@@ -290,6 +290,11 @@
             // Setup actuator toggle if it exists
             const actuatorToggle = document.getElementById('actuator-toggle');
             if (actuatorToggle) {
+                // Initially disable toggle if in auto mode
+                if (autoModeState) {
+                    disableActuatorControls();
+                }
+
                 actuatorToggle.addEventListener('change', function () {
                     // Get the current state of the toggle
                     const isOn = this.checked;
@@ -336,9 +341,39 @@
                 autoModeToggle.checked = autoModeState;
                 updateAutoModeStyles(autoModeState);
 
+                // Initially enable/disable controls based on auto mode state
+                if (deviceType === 'actuator') {
+                    if (autoModeState) {
+                        disableActuatorControls();
+                    } else {
+                        enableActuatorControls();
+                    }
+                } else if (deviceType === 'ac') {
+                    if (autoModeState) {
+                        disableACControls();
+                    } else {
+                        enableACControls();
+                    }
+                }
+
                 autoModeToggle.addEventListener('change', function () {
                     const isAuto = this.checked;
                     toggleAutoMode(isAuto);
+
+                    // Immediately provide visual feedback while API call is processing
+                    if (deviceType === 'actuator') {
+                        if (isAuto) {
+                            disableActuatorControls();
+                        } else {
+                            enableActuatorControls();
+                        }
+                    } else if (deviceType === 'ac') {
+                        if (isAuto) {
+                            disableACControls();
+                        } else {
+                            enableACControls();
+                        }
+                    }
                 });
             }
 
@@ -798,10 +833,73 @@
             });
         }, 200);
 
+        // Function to disable AC temperature controls
+        function disableACControls() {
+            const acTempRadios = document.querySelectorAll('input[name="ac-temperature"]');
+            const acLabels = document.querySelectorAll('label[for^="ac-temp-"]');
+            const acControlStatus = document.getElementById('ac-control-status');
+
+            // Disable all radio buttons
+            acTempRadios.forEach(radio => {
+                radio.disabled = true;
+                radio.classList.add('opacity-50', 'cursor-not-allowed');
+            });
+
+            // Add disabled appearance to labels
+            acLabels.forEach(label => {
+                label.classList.add('opacity-50', 'cursor-not-allowed');
+            });
+
+            // Update status message
+            if (acControlStatus) {
+                acControlStatus.className = 'alert alert-warning';
+                acControlStatus.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>AC is in AUTO mode. Manual control is disabled.</span>
+                `;
+            }
+        }
+
+        // Function to enable AC temperature controls
+        function enableACControls() {
+            const acTempRadios = document.querySelectorAll('input[name="ac-temperature"]');
+            const acLabels = document.querySelectorAll('label[for^="ac-temp-"]');
+            const acControlStatus = document.getElementById('ac-control-status');
+
+            // Enable all radio buttons
+            acTempRadios.forEach(radio => {
+                radio.disabled = false;
+                radio.classList.remove('opacity-50', 'cursor-not-allowed');
+            });
+
+            // Remove disabled appearance from labels
+            acLabels.forEach(label => {
+                label.classList.remove('opacity-50', 'cursor-not-allowed');
+            });
+
+            // Update status message
+            if (acControlStatus) {
+                acControlStatus.className = 'alert alert-info';
+                acControlStatus.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Select a temperature setting to control the AC</span>
+                `;
+            }
+        }
+
         // Setup AC temperature controls
         function setupACTemperatureControls() {
             const acTempRadios = document.querySelectorAll('input[name="ac-temperature"]');
             const acControlStatus = document.getElementById('ac-control-status');
+
+            // Initially enable/disable controls based on auto mode state
+            if (autoModeState && deviceType === 'ac') {
+                disableACControls();
+            }
 
             acTempRadios.forEach(radio => {
                 radio.addEventListener('change', function () {
@@ -890,6 +988,66 @@
             });
         }
 
+        // Function to enable or disable actuator controls based on auto mode
+        function disableActuatorControls() {
+            // Get elements
+            const actuatorToggle = document.getElementById('actuator-toggle');
+            const statusOnButton = document.getElementById('status-on');
+            const statusOffButton = document.getElementById('status-off');
+            const controlStatus = document.getElementById('control-status');
+
+            if (actuatorToggle) {
+                // Disable the toggle
+                actuatorToggle.disabled = true;
+                actuatorToggle.classList.add('opacity-50', 'cursor-not-allowed');
+
+                // Update status buttons with disabled appearance
+                if (statusOnButton) statusOnButton.classList.add('opacity-50', 'cursor-not-allowed');
+                if (statusOffButton) statusOffButton.classList.add('opacity-50', 'cursor-not-allowed');
+
+                // Show message that manual control is disabled
+                if (controlStatus) {
+                    controlStatus.className = 'alert alert-warning';
+                    controlStatus.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span>Device is in AUTO mode. Manual control is disabled.</span>
+                    `;
+                }
+            }
+        }
+
+        // Function to enable actuator controls
+        function enableActuatorControls() {
+            // Get elements
+            const actuatorToggle = document.getElementById('actuator-toggle');
+            const statusOnButton = document.getElementById('status-on');
+            const statusOffButton = document.getElementById('status-off');
+            const controlStatus = document.getElementById('control-status');
+
+            if (actuatorToggle) {
+                // Enable the toggle
+                actuatorToggle.disabled = false;
+                actuatorToggle.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                // Update status buttons to remove disabled appearance
+                if (statusOnButton) statusOnButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                if (statusOffButton) statusOffButton.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                // Update the control status message
+                if (controlStatus) {
+                    controlStatus.className = 'alert alert-info';
+                    controlStatus.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Toggle the switch to control the actuator</span>
+                    `;
+                }
+            }
+        }
+
         // Function to toggle auto mode
         function toggleAutoMode(isAuto) {
             if (isAutoModeUpdating) return;
@@ -932,6 +1090,21 @@
 
                     // Update state
                     autoModeState = isAuto;
+
+                    // Enable or disable controls based on auto mode
+                    if (deviceType === 'actuator') {
+                        if (isAuto) {
+                            disableActuatorControls();
+                        } else {
+                            enableActuatorControls();
+                        }
+                    } else if (deviceType === 'ac') {
+                        if (isAuto) {
+                            disableACControls();
+                        } else {
+                            enableACControls();
+                        }
+                    }
                 })
                 .catch(error => {
                     console.error('Error updating control mode:', error);
