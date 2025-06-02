@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use App\Http\Controllers\PayloadController;
+use App\Models\Device;
 
 class ToggleDevice extends Command
 {
@@ -14,14 +15,14 @@ class ToggleDevice extends Command
      *
      * @var string
      */
-    protected $signature = 'device:toggle {deviceId} {--on} {--off}';
+    protected $signature = 'device:toggle {deviceId} {--on} {--off} {--force}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Toggle a device on or off';
+    protected $description = 'Toggle a device on or off (respects auto_mode unless --force is used)';
 
     /**
      * Execute the console command.
@@ -30,16 +31,33 @@ class ToggleDevice extends Command
     {
         $deviceId = $this->argument('deviceId');
         $status = $this->option('on') ? 'on' : ($this->option('off') ? 'off' : null);
-        
+        $force = $this->option('force');
+
+        // Check if device exists and get its auto_mode status
+        $device = Device::where('deviceId', $deviceId)->first();
+
+        if (!$device) {
+            $this->error("Device {$deviceId} not found");
+            Log::error("Device {$deviceId} not found when trying to toggle");
+            return 1;
+        }
+
+        // Check if device is in manual mode and we're not forcing the action
+        if (!$device->auto_mode && !$force) {
+            $this->warn("Device {$deviceId} is in manual mode, skipping scheduled action");
+            Log::info("Device {$deviceId} is in manual mode, skipping scheduled action");
+            return 0;
+        }
+
         $payloadController = app()->make(PayloadController::class);
-        
+
         // Create a request with the payload data
         $request = new Request();
-         $request->replace([
-        'data' => [
-            'status' => $status
-        ]
-    ]);
+        $request->replace([
+            'data' => [
+                'status' => $status
+            ]
+        ]);
 
         $response = $payloadController->update($request, $deviceId);
         // Log::info("response: {$response}");
